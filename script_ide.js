@@ -299,9 +299,9 @@ async function inicializarPyodide() {
     statusElement.className = "status-top loading";
 
     // Cargar Pyodide dinámicamente
-    const script = document.createElement("script");
-    script.src = "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js";
-
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js';
+    
     await new Promise((resolve, reject) => {
       script.onload = resolve;
       script.onerror = reject;
@@ -438,6 +438,7 @@ sys.stderr = original_stderr
 
     outputElement.textContent =
       output || "✅ Código ejecutado sin salida en consola.";
+      
   } catch (error) {
     outputElement.textContent = `❌ Error: ${error.message}`;
     console.error("Error completo:", error);
@@ -445,16 +446,14 @@ sys.stderr = original_stderr
   } finally {
     runBtn.disabled = false;
     runBtn.textContent = "▶️ Ejecutar";
-
+    
     // Disparar evento personalizado para notificar a la página padre
-    window.dispatchEvent(
-      new CustomEvent("pythonExecutionComplete", {
-        detail: {
-          success: window.pythonExecutionSuccess,
-          error: window.pythonExecutionError,
-        },
-      })
-    );
+    window.dispatchEvent(new CustomEvent('pythonExecutionComplete', {
+      detail: {
+        success: window.pythonExecutionSuccess,
+        error: window.pythonExecutionError
+      }
+    }));
   }
 }
 
@@ -475,21 +474,55 @@ document.addEventListener("keypress", (e) => {
 });
 
 // Funciones auxiliares para la página padre
-window.getPythonExecutionStatus = function () {
+window.getPythonExecutionStatus = function() {
   return {
     success: window.pythonExecutionSuccess,
     error: window.pythonExecutionError,
-    isLoading: isLoading,
+    isLoading: isLoading
   };
 };
 
-window.resetExecutionStatus = function () {
+window.resetExecutionStatus = function() {
   window.pythonExecutionSuccess = false;
   window.pythonExecutionError = null;
 };
 
+// Función para cargar código desde parámetros URL
+function cargarCodigoDesdeURL() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const codigoEmbebido = urlParams.get('codigo');
+  
+  if (codigoEmbebido) {
+    try {
+      // Decodificar el código desde base64
+      const codigoDecodificado = atob(codigoEmbebido);
+      document.getElementById("code-editor").value = codigoDecodificado;
+      console.log("✅ Código embebido cargado correctamente");
+    } catch (error) {
+      console.error("❌ Error al decodificar código embebido:", error);
+    }
+  }
+}
+
+// Función para generar URL de embebido
+function generarURLEmbebido() {
+  const codigo = document.getElementById("code-editor").value;
+  const codigoCodificado = btoa(codigo); // Codificar en base64
+  const urlBase = window.location.origin + window.location.pathname;
+  const urlEmbebida = `${urlBase}?codigo=${codigoCodificado}`;
+  
+  // Copiar al portapapeles
+  navigator.clipboard.writeText(urlEmbebida).then(() => {
+    alert("🔗 URL de embebido copiada al portapapeles!\n\nComparte este enlace con tus estudiantes para que vean el código precargado.");
+  }).catch(() => {
+    // Fallback para navegadores que no soportan clipboard API
+    prompt("Copia esta URL para compartir el código embebido:", urlEmbebida);
+  });
+}
+
 // Inicializar cuando la página se carga
 window.addEventListener("load", () => {
   console.log("🚀 Inicializando IDE Python...");
+  cargarCodigoDesdeURL(); // Cargar código embebido si existe
   inicializarPyodide();
 });
