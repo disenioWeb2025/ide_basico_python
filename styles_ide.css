@@ -1,0 +1,257 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.header {
+  background: linear-gradient(135deg, #2196f3, #21cbf3);
+  color: white;
+  padding: 15px;
+  text-align: center;
+}
+
+.header h1 {
+  font-size: 1.8em;
+  margin: 0;
+}
+
+.main-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  padding: 20px;
+  min-height: 500px;
+}
+
+.control-buttons {
+  display: flex;
+  gap: 10px;
+  padding: 15px 20px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.btn-ejecutar {
+  background: #28a745;
+  color: white;
+}
+
+.btn-ejecutar:hover {
+  background: #218838;
+}
+
+.btn-ejecutar:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.btn-limpiar {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-limpiar:hover {
+  background: #5a6268;
+}
+
+.editor-panel {
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 15px;
+  border: 2px solid #e9ecef;
+}
+
+.editor-panel h3 {
+  color: #495057;
+  margin-bottom: 15px;
+  font-size: 1.1em;
+}
+
+.code-editor {
+  width: 100%;
+  height: 400px;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  font-family: "Courier New", monospace;
+  font-size: 14px;
+  padding: 15px;
+  resize: none;
+  background: #ffffff;
+  color: #212529;
+  line-height: 1.5;
+}
+
+.code-editor:focus {
+  outline: none;
+  border-color: #2196f3;
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+}
+
+.output-panel {
+  background: #1a1a1a;
+  border-radius: 10px;
+  padding: 15px;
+  border: 2px solid #333;
+}
+
+.output-panel h3 {
+  color: #ffffff;
+  margin-bottom: 15px;
+  font-size: 1.1em;
+}
+
+.output-content {
+  background: #000000;
+  color: #00ff00;
+  font-family: "Courier New", monospace;
+  padding: 15px;
+  height: 350px;
+  border-radius: 8px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.status-top {
+  padding: 8px 20px;
+  text-align: center;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.status-top.loading {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-top.ready {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-top.error {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.input-section {
+  margin-top: 15px;
+  padding: 10px;
+  background: #2a2a2a;
+  border-radius: 8px;
+  border: 1px solid #444;
+}
+
+.input-section.input-hidden {
+  display: none;
+}
+
+.input-prompt {
+  color: #ffffff;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.input-section input {
+  width: calc(100% - 80px);
+  padding: 8px 12px;
+  border: 1px solid #555;
+  border-radius: 4px;
+  background: #333;
+  color: #fff;
+  font-family: "Courier New", monospace;
+}
+
+.input-button {
+  width: 70px;
+  padding: 8px 12px;
+  margin-left: 8px;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.input-button:hover {
+  background: #218838;
+}
+
+/* Canvas turtle */
+.canvas-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 9998;
+  display: none;
+}
+
+#turtle-container {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9999;
+  background: white;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  display: none;
+}
+
+.canvas-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  background: #f44336;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.canvas-close-btn:hover {
+  background: #d32f2f;
+}
+
+#turtle-canvas {
+  border: 2px solid #333;
+  border-radius: 8px;
+  background: white;
+}
