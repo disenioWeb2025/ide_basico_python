@@ -3,8 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <title>🐍 IDE Python</title>
-    <link rel="stylesheet" href="styles_ide.css" />
+    <link rel="stylesheet" href="./styles.css" type="text/css">
   </head>
   <body>
     <div class="container">
@@ -17,15 +18,14 @@
       <div id="status" class="status-top">Cargando Python...</div>
 
       <div class="control-buttons">
-        <button
-          id="run-btn"
-          class="btn btn-ejecutar"
-          onclick="ejecutarCodigo()"
-        >
+        <button id="run-btn" class="btn btn-ejecutar" onclick="ejecutarCodigo()">
           ▶️ Ejecutar
         </button>
         <button class="btn btn-limpiar" onclick="limpiarEditor()">
           🗑️ Limpiar
+        </button>
+        <button class="btn btn-embeber" onclick="generarURLEmbebido()">
+          🔗 Embeber
         </button>
       </div>
 
@@ -56,7 +56,8 @@ print(f"{a} * {b} = {a * b}")</textarea
         <div class="output-panel">
           <h3>🖥️ Salida del Programa</h3>
           <div id="output" class="output-content">
-            Python 3.10 | Pyodide Ejecuta tu código para ver la salida...
+            Python 3.10 | Pyodide
+            Ejecuta tu código para ver la salida...
           </div>
           <div id="input-section" class="input-section input-hidden">
             <div class="input-prompt" id="input-prompt">
@@ -74,16 +75,13 @@ print(f"{a} * {b} = {a * b}")</textarea
     </div>
 
     <!-- Canvas flotante para turtle -->
-    <div
-      class="canvas-overlay"
-      id="canvas-overlay"
-      onclick="closeTurtleCanvas()"
-    ></div>
+    <div class="canvas-overlay" id="canvas-overlay" onclick="closeTurtleCanvas()"></div>
     <div id="turtle-container">
       <button class="canvas-close-btn" onclick="closeTurtleCanvas()">×</button>
       <canvas id="turtle-canvas" width="800" height="600"></canvas>
     </div>
 
-    <script src="script_ide.js"></script>
+    <script src="./script.js"></script>
   </body>
 </html>
+
