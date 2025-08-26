@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎯 Ejercicio de Python - Verificador</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .exercise-info {
+            padding: 20px;
+            background: #f8f9fa;
+            border-left: 5px solid #4CAF50;
+            margin: 20px;
+            border-radius: 10px;
+        }
+
+        .status-panel {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .status-card {
+            background: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            min-width: 150px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .status-card.waiting {
+            border-color: #ffc107;
+            background: #fff3cd;
+        }
+
+        .status-card.success {
+            border-color: #28a745;
+            background: #d4edda;
+            animation: pulse-success 1s ease-in-out;
+        }
+
+        .status-card.error {
+            border-color: #dc3545;
+            background: #f8d7da;
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes pulse-success {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .status-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .status-text {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .status-detail {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .ide-container {
+            margin: 20px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .ide-container iframe {
+            width: 100%;
+            height: 600px;
+            border: none;
+        }
+
+        .controls {
+            padding: 20px;
+            text-align: center;
+            background: #f8f9fa;
+            border-top: 1px solid #ddd;
+        }
+
+        .btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 0 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .results-panel {
+            margin: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .results-panel.show {
+            display: block;
+        }
+
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid;
+        }
+
+        .test-result.pass {
+            background: #d4edda;
+            border-left-color: #28a745;
+        }
+
+        .test-result.fail {
+            background: #f8d7da;
+            border-left-color: #dc3545;
+        }
+
+        .log-panel {
+            margin: 20px;
+            padding: 15px;
+            background: #1e1e1e;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            border-radius: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Ejercicio de Python</h1>
+            <p>Completa el código y verifica si es correcto</p>
+        </div>
+
+        <div class="exercise-info">
+            <h3>📝 Instrucciones:</h3>
+            <p id="exercise-description">
+                <strong>Ejercicio:</strong> Crea una función llamada <code>saludar()</code> que reciba un nombre como parámetro 
+                y devuelva "¡Hola, [nombre]!" donde [nombre] es el parámetro recibido.
+                <br><br>
+                <strong>Ejemplo:</strong> <code>saludar("María")</code> debe devolver <code>"¡Hola, María!"</code>
+            </p>
+        </div>
+
+        <div class="status-panel">
+            <div class="status-card waiting" id="execution-status">
+                <div class="status-icon">⏳</div>
+                <div class="status-text">Esperando</div>
+                <div class="status-detail">Ejecuta el código</div>
+            </div>
+
+            <div class="status-card waiting" id="test-status">
+                <div class="status-icon">🧪</div>
+                <div class="status-text">Tests</div>
+                <div class="status-detail">0/3 pasados</div>
+            </div>
+
+            <div class="status-card waiting" id="overall-status">
+                <div class="status-icon">❓</div>
+                <div class="status-text">Resultado</div>
+                <div class="status-detail">Sin verificar</div>
+            </div>
+        </div>
+
+        <div class="ide-container">
+            <iframe id="python-ide" src="" title="IDE Python"></iframe>
+        </div>
+
+        <div class="controls">
+            <button class="btn" onclick="verificarCodigo()" id="verify-btn">
+                🔍 Verificar Código
+            </button>
+            <button class="btn" onclick="resetearEjercicio()" id="reset-btn">
+                🔄 Resetear
+            </button>
+            <button class="btn" onclick="mostrarSolucion()" id="solution-btn">
+                💡 Mostrar Solución
+            </button>
+        </div>
+
+        <div class="results-panel" id="results-panel">
+            <h3>📊 Resultados de las Pruebas:</h3>
+            <div id="test-results"></div>
+        </div>
+
+        <div class="log-panel" id="log-panel">
+            <div id="log-content">🖥️ Sistema de verificación iniciado...</div>
+        </div>
+    </div>
+
+    <script>
+        // Configuración del ejercicio
+        const ejercicioConfig = {
+            // Código inicial que aparecerá en el IDE
+            codigoInicial: `# Ejercicio: Función de saludo
+# Completa la función saludar() que recibe un nombre
+# y devuelve "¡Hola, [nombre]!"
+
+def saludar(nombre):
+    # Tu código aquí
+    pass
+
+# Pruebas (no modificar)
+print("Probando función...")
+resultado1 = saludar("María")
+print(f"saludar('María') = {resultado1}")
+
+resultado2 = saludar("Juan")
+print(f"saludar('Juan') = {resultado2}")
+
+resultado3 = saludar("Ana")
+print(f"saludar('Ana') = {resultado3}")`,
+
+            // Función para verificar si el código es correcto
+            verificarSolucion: (codigoEjecutado, salida, error) => {
+                const tests = [];
+                
+                // Test 1: Verificar que no hay errores
+                tests.push({
+                    nombre: "Sin errores de sintaxis",
+                    pasado: !error,
+                    mensaje: error ? `Error encontrado: ${error}` : "✅ Código sin errores"
+                });
+
+                // Test 2: Verificar que existe la función saludar
+                const tieneFuncionSaludar = /def\s+saludar\s*\(/.test(codigoEjecutado);
+                tests.push({
+                    nombre: "Función saludar() definida",
+                    pasado: tieneFuncionSaludar,
+                    mensaje: tieneFuncionSaludar ? "✅ Función saludar encontrada" : "❌ No se encontró la función saludar"
+                });
+
+                // Test 3: Verificar salida esperada
+                let salidaCorrecta = true;
+                let mensajeSalida = "";
+                
+                if (salida) {
+                    const lineas = salida.toLowerCase();
+                    const tieneMaria = lineas.includes("¡hola, maría!") || lineas.includes("hola, maría");
+                    const tieneJuan = lineas.includes("¡hola, juan!") || lineas.includes("hola, juan");
+                    const tieneAna = lineas.includes("¡hola, ana!") || lineas.includes("hola, ana");
+                    
+                    salidaCorrecta = tieneMaria && tieneJuan && tieneAna;
+                    
+                    if (salidaCorrecta) {
+                        mensajeSalida = "✅ Todas las salidas son correctas";
+                    } else {
+                        mensajeSalida = `❌ Salidas incorrectas. Esperado: ¡Hola, María!, ¡Hola, Juan!, ¡Hola, Ana!`;
+                    }
+                } else {
+                    salidaCorrecta = false;
+                    mensajeSalida = "❌ No se detectó salida del programa";
+                }
+
+                tests.push({
+                    nombre: "Salida correcta",
+                    pasado: salidaCorrecta,
+                    mensaje: mensajeSalida
+                });
+
+                return tests;
+            },
+
+            // Solución del ejercicio
+            solucion: `# Solución: Función de saludo
+def saludar(nombre):
+    return f"¡Hola, {nombre}!"
+
+# Pruebas
+print("Probando función...")
+resultado1 = saludar("María")
+print(f"saludar('María') = {resultado1}")
+
+resultado2 = saludar("Juan")
+print(f"saludar('Juan') = {resultado2}")
+
+resultado3 = saludar("Ana")
+print(f"saludar('Ana') = {resultado3}")`
+        };
+
+        let iframeWindow = null;
+
+        // Inicializar la página
+        function inicializar() {
+            log("Inicializando verificador de código...");
+            
+            // Generar URL del IDE con código embebido
+            const codigoCodificado = btoa(encodeURIComponent(ejercicioConfig.codigoInicial));
+            const urlIDE = `index.html?codigo=${codigoCodificado}`;
+            
+            // Cargar IDE en iframe
+            const iframe = document.getElementById('python-ide');
+            iframe.src = urlIDE;
+            
+            // Escuchar cuando el iframe se carga
+            iframe.onload = function() {
+                iframeWindow = iframe.contentWindow;
+                log("IDE de Python cargado correctamente");
+                
+                // Escuchar eventos del IDE
+                window.addEventListener('message', manejarMensajeIDE);
+            };
+
+            log("✅ Verificador iniciado");
+        }
+
+        // Manejar mensajes del IDE
+        function manejarMensajeIDE(event) {
+            // Verificar origen por seguridad
+            if (event.origin !== window.location.origin) return;
+            
+            if (event.data.tipo === 'ejecucionCompleta') {
+                log(`Ejecución completada. Éxito: ${event.data.exito}`);
+                actualizarEstadoEjecucion(event.data.exito, event.data.error);
+            }
+        }
+
+        // Verificar el código
+        async function verificarCodigo() {
+            log("🔍 Iniciando verificación de código...");
+            
+            if (!iframeWindow) {
+                log("❌ Error: IDE no disponible");
+                return;
+            }
+
+            const verifyBtn = document.getElementById('verify-btn');
+            verifyBtn.disabled = true;
+            verifyBtn.textContent = "🔍 Verificando...";
+
+            try {
+                // Obtener estado de ejecución del IDE
+                const estado = iframeWindow.getPythonExecutionStatus();
+                log(`Estado de ejecución: ${JSON.stringify(estado)}`);
+
+                if (estado.isLoading) {
+                    log("⏳ Python aún se está cargando...");
+                    alert("Python aún se está cargando. Por favor espera.");
+                    return;
+                }
+
+                // Obtener el código actual del IDE
+                const codigo = iframeWindow.document.getElementById('code-editor').value;
+                const salida = iframeWindow.document.getElementById('output').textContent;
+
+                log("📝 Código obtenido del IDE");
+                log("📤 Salida obtenida del IDE");
+
+                // Ejecutar tests
+                const resultadosTests = ejercicioConfig.verificarSolucion(codigo, salida, estado.error);
+                
+                // Mostrar resultados
+                mostrarResultados(resultadosTests);
+                actualizarEstadisticas(resultadosTests);
+
+                log("✅ Verificación completada");
+
+            } catch (error) {
+                log(`❌ Error durante verificación: ${error.message}`);
+                alert(`Error al verificar: ${error.message}`);
+            } finally {
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = "🔍 Verificar Código";
+            }
+        }
+
+        // Actualizar estado de ejecución
+        function actualizarEstadoEjecucion(exito, error) {
+            const statusCard = document.getElementById('execution-status');
+            
+            if (exito) {
+                statusCard.className = 'status-card success';
+                statusCard.innerHTML = `
+                    <div class="status-icon">✅</div>
+                    <div class="status-text">Ejecutado</div>
+                    <div class="status-detail">Sin errores</div>
+                `;
+            } else {
+                statusCard.className = 'status-card error';
+                statusCard.innerHTML = `
+                    <div class="status-icon">❌</div>
+                    <div class="status-text">Error</div>
+                    <div class="status-detail">Revisar código</div>
+                `;
+            }
+        }
+
+        // Mostrar resultados de tests
+        function mostrarResultados(tests) {
+            const resultsPanel = document.getElementById('results-panel');
+            const testResults = document.getElementById('test-results');
+            
+            testResults.innerHTML = '';
+            
+            tests.forEach(test => {
+                const div = document.createElement('div');
+                div.className = `test-result ${test.pasado ? 'pass' : 'fail'}`;
+                div.innerHTML = `
+                    <strong>${test.nombre}:</strong> ${test.mensaje}
+                `;
+                testResults.appendChild(div);
+            });
+            
+            resultsPanel.classList.add('show');
+        }
+
+        // Actualizar estadísticas
+        function actualizarEstadisticas(tests) {
+            const testsPasados = tests.filter(test => test.pasado).length;
+            const totalTests = tests.length;
+            const todosCorrecto = testsPasados === totalTests;
+
+            // Actualizar tarjeta de tests
+            const testStatus = document.getElementById('test-status');
+            testStatus.className = `status-card ${todosCorrecto ? 'success' : 'error'}`;
+            testStatus.innerHTML = `
+                <div class="status-icon">${todosCorrecto ? '✅' : '❌'}</div>
+                <div class="status-text">Tests</div>
+                <div class="status-detail">${testsPasados}/${totalTests} pasados</div>
+            `;
+
+            // Actualizar estado general
+            const overallStatus = document.getElementById('overall-status');
+            overallStatus.className = `status-card ${todosCorrecto ? 'success' : 'error'}`;
+            overallStatus.innerHTML = `
+                <div class="status-icon">${todosCorrecto ? '🎉' : '⚠️'}</div>
+                <div class="status-text">${todosCorrecto ? 'Correcto' : 'Incorrecto'}</div>
+                <div class="status-detail">${todosCorrecto ? '¡Excelente!' : 'Revisar código'}</div>
+            `;
+
+            log(`📊 Tests: ${testsPasados}/${totalTests} pasados`);
+        }
+
+        // Resetear ejercicio
+        function resetearEjercicio() {
+            log("🔄 Reseteando ejercicio...");
+            
+            // Recargar iframe con código inicial
+            const codigoCodificado = btoa(encodeURIComponent(ejercicioConfig.codigoInicial));
+            const urlIDE = `index.html?codigo=${codigoCodificado}`;
+            document.getElementById('python-ide').src = urlIDE;
+            
+            // Resetear estados
+            document.getElementById('execution-status').className = 'status-card waiting';
+            document.getElementById('execution-status').innerHTML = `
+                <div class="status-icon">⏳</div>
+                <div class="status-text">Esperando</div>
+                <div class="status-detail">Ejecuta el código</div>
+            `;
+            
+            document.getElementById('test-status').className = 'status-card waiting';
+            document.getElementById('test-status').innerHTML = `
+                <div class="status-icon">🧪</div>
+                <div class="status-text">Tests</div>
+                <div class="status-detail">0/3 pasados</div>
+            `;
+            
+            document.getElementById('overall-status').className = 'status-card waiting';
+            document.getElementById('overall-status').innerHTML = `
+                <div class="status-icon">❓</div>
+                <div class="status-text">Resultado</div>
+                <div class="status-detail">Sin verificar</div>
+            `;
+            
+            document.getElementById('results-panel').classList.remove('show');
+            
+            log("✅ Ejercicio reseteado");
+        }
+
+        // Mostrar solución
+        function mostrarSolucion() {
+            if (confirm("¿Estás seguro de que quieres ver la solución?")) {
+                log("💡 Mostrando solución...");
+                
+                const codigoCodificado = btoa(encodeURIComponent(ejercicioConfig.solucion));
+                const urlIDE = `index.html?codigo=${codigoCodificado}`;
+                document.getElementById('python-ide').src = urlIDE;
+                
+                log("✅ Solución cargada");
+            }
+        }
+
+        // Función de logging
+        function log(mensaje) {
+            const logContent = document.getElementById('log-content');
+            const timestamp = new Date().toLocaleTimeString();
+            logContent.innerHTML += `<br>[${timestamp}] ${mensaje}`;
+            logContent.scrollTop = logContent.scrollHeight;
+        }
+
+        // Inicializar cuando la página carga
+        window.addEventListener('load', inicializar);
+    </script>
+</body>
+</html>
