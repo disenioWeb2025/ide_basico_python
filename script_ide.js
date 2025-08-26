@@ -105,8 +105,6 @@ function adjustWidth(section, value) {
   }
 }
 
-// Ejemplos removidos para versión embebible
-
 // Turtle graphics implementation para Pyodide - CORREGIDA
 function setupTurtleModule() {
   const turtleModule = `
@@ -371,6 +369,12 @@ builtins.input = input
     isLoading = false;
     outputElement.textContent =
       "Python 3.10 | Pyodide\nEjecuta tu código para ver la salida...";
+      
+    // Si hay código embebido, mostrar mensaje
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('codigo') && outputElement) {
+      outputElement.textContent = "📎 Código embebido cargado. ¡Presiona ▶️ Ejecutar para probarlo!";
+    }
   } catch (error) {
     outputElement.textContent = `❌ Error al cargar Python: ${error.message}`;
     statusElement.textContent = "❌ Error al cargar";
@@ -464,7 +468,120 @@ function limpiarEditor() {
   closeTurtleCanvas();
 }
 
-// Funciones de descarga y compartir removidas para versión embebible
+// Función auxiliar para mostrar URL cuando clipboard API no funciona
+function mostrarURLEnPrompt(url) {
+  // Crear textarea temporal para copiar
+  const textarea = document.createElement('textarea');
+  textarea.value = url;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  
+  try {
+    const successful = document.execCommand('copy');
+    document.body.removeChild(textarea);
+    
+    if (successful) {
+      alert("🔗 ¡URL copiada al portapapeles!\n\n📏 Longitud: " + url.length + " caracteres");
+    } else {
+      throw new Error("execCommand failed");
+    }
+  } catch (error) {
+    document.body.removeChild(textarea);
+    // Como último recurso, mostrar en prompt para copia manual
+    prompt("Copia esta URL para compartir el código embebido:", url);
+  }
+}
+
+// FUNCIÓN CORREGIDA para generar URL de embebido
+function generarURLEmbebido() {
+  const codigo = document.getElementById("code-editor").value;
+  
+  if (!codigo.trim()) {
+    alert("⚠️ No hay código para embeber. Escribe algo primero.");
+    return;
+  }
+  
+  try {
+    // Mejor encoding para manejar caracteres especiales
+    const codigoCodificado = btoa(encodeURIComponent(codigo));
+    const urlBase = window.location.origin + window.location.pathname;
+    const urlEmbebida = `${urlBase}?codigo=${codigoCodificado}`;
+    
+    // Verificar si la URL no es demasiado larga (límite de navegadores ~2000 caracteres)
+    if (urlEmbebida.length > 2000) {
+      alert("⚠️ El código es demasiado largo para embeber en URL.\nIntenta con código más corto o usa un servicio como pastebin.");
+      return;
+    }
+    
+    console.log("🔗 URL generada:", urlEmbebida);
+    
+    // Copiar al portapapeles con mejor manejo de errores
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(urlEmbebida)
+        .then(() => {
+          alert("🔗 ¡URL de embebido copiada al portapapeles!\n\nComparte este enlace para que otros vean tu código precargado.\n\n📏 Longitud: " + urlEmbebida.length + " caracteres");
+        })
+        .catch((error) => {
+          console.error("Error al copiar con clipboard API:", error);
+          mostrarURLEnPrompt(urlEmbebida);
+        });
+    } else {
+      // Fallback para navegadores sin clipboard API o contextos no seguros
+      mostrarURLEnPrompt(urlEmbebida);
+    }
+  } catch (error) {
+    console.error("Error al generar URL embebida:", error);
+    alert("❌ Error al generar URL embebida.\nEl código puede contener caracteres que no se pueden codificar.");
+  }
+}
+
+// FUNCIÓN CORREGIDA para cargar código desde parámetros URL
+function cargarCodigoDesdeURL() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const codigoEmbebido = urlParams.get('codigo');
+  
+  if (codigoEmbebido) {
+    try {
+      // Decodificación mejorada que maneja caracteres especiales
+      const codigoDecodificado = decodeURIComponent(atob(codigoEmbebido));
+      const editor = document.getElementById("code-editor");
+      
+      if (editor) {
+        editor.value = codigoDecodificado;
+        console.log("✅ Código embebido cargado correctamente");
+        console.log("📄 Contenido cargado:", codigoDecodificado.substring(0, 100) + "...");
+      }
+    } catch (error) {
+      console.error("❌ Error al decodificar código embebido:", error);
+      alert("⚠️ Error al cargar el código embebido.\nEl enlace puede estar corrupto o malformado.");
+      
+      // Mostrar el parámetro crudo para debugging
+      console.log("Parámetro crudo recibido:", codigoEmbebido);
+    }
+  }
+}
+
+// FUNCIÓN DE PRUEBA - para debugging
+function probarEmbebido() {
+  console.log("🧪 Probando función embeber...");
+  
+  // Verificar elementos del DOM
+  const editor = document.getElementById("code-editor");
+  const boton = document.querySelector(".btn-embeber");
+  
+  console.log("Editor encontrado:", !!editor);
+  console.log("Botón encontrado:", !!boton);
+  console.log("Contenido del editor:", editor ? editor.value.length + " caracteres" : "N/A");
+  
+  // Probar la función
+  if (editor && editor.value.trim()) {
+    generarURLEmbebido();
+  } else {
+    console.log("❌ No hay código para embeber");
+  }
+}
 
 // Permitir Enter en el input field
 document.addEventListener("keypress", (e) => {
@@ -487,38 +604,8 @@ window.resetExecutionStatus = function() {
   window.pythonExecutionError = null;
 };
 
-// Función para cargar código desde parámetros URL
-function cargarCodigoDesdeURL() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const codigoEmbebido = urlParams.get('codigo');
-  
-  if (codigoEmbebido) {
-    try {
-      // Decodificar el código desde base64
-      const codigoDecodificado = atob(codigoEmbebido);
-      document.getElementById("code-editor").value = codigoDecodificado;
-      console.log("✅ Código embebido cargado correctamente");
-    } catch (error) {
-      console.error("❌ Error al decodificar código embebido:", error);
-    }
-  }
-}
-
-// Función para generar URL de embebido
-function generarURLEmbebido() {
-  const codigo = document.getElementById("code-editor").value;
-  const codigoCodificado = btoa(codigo); // Codificar en base64
-  const urlBase = window.location.origin + window.location.pathname;
-  const urlEmbebida = `${urlBase}?codigo=${codigoCodificado}`;
-  
-  // Copiar al portapapeles
-  navigator.clipboard.writeText(urlEmbebida).then(() => {
-    alert("🔗 URL de embebido copiada al portapapeles!\n\nComparte este enlace con tus estudiantes para que vean el código precargado.");
-  }).catch(() => {
-    // Fallback para navegadores que no soportan clipboard API
-    prompt("Copia esta URL para compartir el código embebido:", urlEmbebida);
-  });
-}
+// Para debugging en consola - puedes escribir: probarEmbebido()
+window.probarEmbebido = probarEmbebido;
 
 // Inicializar cuando la página se carga
 window.addEventListener("load", () => {
