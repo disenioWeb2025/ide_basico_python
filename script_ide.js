@@ -613,3 +613,73 @@ window.addEventListener("load", () => {
   cargarCodigoDesdeURL(); // Cargar código embebido si existe
   inicializarPyodide();
 });
+
+/ Al final de tu script_ide.js actual, agrega estas líneas:
+
+// === COMUNICACIÓN CON PÁGINA PADRE VIA POSTMESSAGE ===
+
+// Escuchar solicitudes de estado desde la página padre
+window.addEventListener('message', function(event) {
+    // Verificar origen (ajusta según tu dominio)
+    const allowedOrigins = [
+        'https://liceolapaz1.github.io',
+        'http://localhost:3000', // Para desarrollo local
+        'http://127.0.0.1:5500'  // Para Live Server
+    ];
+    
+    if (!allowedOrigins.includes(event.origin)) {
+        console.log('🚫 Mensaje bloqueado de origen:', event.origin);
+        return;
+    }
+
+    console.log('📨 Mensaje recibido del padre:', event.data);
+
+    if (event.data.type === 'requestPythonStatus') {
+        // Enviar estado actual del Python
+        enviarEstadoAlPadre(event.data.exerciseId);
+    }
+});
+
+// Función para enviar estado al padre
+function enviarEstadoAlPadre(exerciseId) {
+    const estado = {
+        success: window.pythonExecutionSuccess,
+        error: window.pythonExecutionError,
+        isLoading: isLoading
+    };
+
+    const mensaje = {
+        type: 'pythonStatus',
+        exerciseId: exerciseId,
+        status: estado,
+        timestamp: new Date().toISOString()
+    };
+
+    console.log('📤 Enviando estado al padre:', mensaje);
+    
+    // Enviar a la página padre
+    if (window.parent && window.parent !== window) {
+        window.parent.postMessage(mensaje, '*');
+    }
+}
+
+// Modificar la función ejecutarCodigo para notificar automáticamente
+// Encuentra esta parte en tu código existente y agrégale al final:
+
+// EN LA FUNCIÓN ejecutarCodigo(), al final del bloque finally, agrega:
+
+/*
+// Notificar automáticamente a la página padre cuando se ejecute código
+if (window.parent && window.parent !== window) {
+    const mensaje = {
+        type: 'pythonExecutionComplete',
+        success: window.pythonExecutionSuccess,
+        error: window.pythonExecutionError,
+        timestamp: new Date().toISOString()
+    };
+    
+    window.parent.postMessage(mensaje, '*');
+    console.log('🎯 Notificación automática enviada al padre');
+}
+*/
+
