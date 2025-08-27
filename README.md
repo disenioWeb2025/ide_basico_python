@@ -218,18 +218,6 @@ Si alguna vez embebés **desde otro dominio**, no se podrá medir. En ese caso, 
 
 ---
 
-## 📝 Licencia / Créditos
-
-**IDE-BASICO-PYTHON** © 2025 por [Prof. Elizabeth Izquierdo](https://creativecommons.org) está licenciado bajo [Creative Commons Atribución-NoComercial-CompartirIgual 4.0 Internacional](https://creativecommons.org/licenses/by-nc-sa/4.0/).  
-
-## Soporte y Contribuciones
-
-Para reportar problemas, sugerir mejoras o contribuir al proyecto:
-- Revisar la documentación técnica en los comentarios del código
-- Testear en múltiples navegadores antes de reportar bugs
-- Proponer mejoras pedagógicas, etc. pueden escribir a profe.eliza17@gmail.com 
----
-
 ## 📎 Snippets útiles
 
 **Codificar código a `?codigo=...`:**
@@ -264,3 +252,16 @@ window.addEventListener('message', (ev) => {
   }
 });
 ```
+
+## 📝 Licencia / Créditos
+
+**IDE-BASICO-PYTHON** © 2025 por [Prof. Elizabeth Izquierdo](https://creativecommons.org) está licenciado bajo [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).  
+[![Licencia CC BY-NC-SA 4.0](https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+
+## Soporte y Contribuciones
+
+Para reportar problemas, sugerir mejoras o contribuir al proyecto:
+- Revisar la documentación técnica en los comentarios del código
+- Testear en múltiples navegadores antes de reportar bugs
+- Proponer mejoras pedagógicas, etc. pueden escribir a profe.eliza17@gmail.com 
+---
