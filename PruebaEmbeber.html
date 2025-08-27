@@ -5,19 +5,107 @@
   <title>Prueba de IDE embebido (mismo origen)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body { margin: 0; font-family: system-ui, sans-serif; padding: 1rem; }
-    .frame { width: 100%; height: 720px; border: 0; border-radius: 12px; display: block; }
+    :root { --fg:#222; --muted:#666; --ok:#2e7d32; --run:#e67e22; --err:#c62828; }
+    body { margin:0; font-family: system-ui, sans-serif; padding:1rem; color:var(--fg); }
+    .frame { width:100%; height:720px; border:0; border-radius:12px; display:block; }
+    .estado { display:flex; align-items:center; gap:.6rem; font-weight:600; margin:.25rem 0 1rem; }
+    .dot {
+      width:12px; height:12px; border-radius:50%; background:#999; display:inline-block;
+      box-shadow:0 0 0 2px rgba(0,0,0,.05) inset;
+    }
+    .dot.running { background: var(--run); }
+    .dot.ok      { background: var(--ok); }
+    .dot.error   { background: var(--err); }
+    .log { font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+           background:#f6f8fa; border:1px solid #e5e7eb; border-radius:8px; padding:.75rem; margin-top:1rem; white-space:pre-wrap; max-height:180px; overflow:auto; color:#111; }
+    .muted { color: var(--muted); font-weight: 500; }
   </style>
 </head>
 <body>
   <h2>Probando IDE Python embebido</h2>
 
-  <!-- OJO: ruta relativa para forzar mismo origen y misma carpeta -->
+  <!-- Indicador de estado -->
+  <div class="estado" aria-live="polite">
+    <span class="dot" id="dot" title="estado"></span>
+    <span id="label" class="muted">Esperando IDE…</span>
+  </div>
+
+  <!-- Iframe (misma carpeta/mismo origen) -->
   <iframe
+    id="ide"
     class="frame"
     src="./?codigo=JTIzTGlzdGElMjBkZSUyMGlzbGFzJTIwZW4lMjBudWVzdHJvJTIwbWFwYSUwQWlzbGFzJTIwJTNEJTIwJTVCJTIySXNsYSUyMENhbGF2ZXJhJTIyJTJDJTIySXNsYSUyMExvcm8lMjIlMkMlMjJJc2xhJTIwQ2ElQzMlQjElQzMlQjNuJTIyJTJDJTIySXNsYSUyMFNpcmVuYSUyMiUyQyUyMklzbGElMjBEb3JhZGElMjIlNUQlMEElMEElMjMlMjBFbCUyMGJ1Y2xlJTIwRk9SJTIwdmlzaXRhJTIwY2FkYSUyMGlzbGElMjBhdXRvbSVDMyVBMXRpY2FtZW50ZSUwQWZvciUyMGlzbGElMjBpbiUyMGlzbGFzJTNBJTBBJTIwJTIwcHJpbnQoZiUyMiVGMCU5RiU4RiVCNCVFMiU4MCU4RCVFMiU5OCVBMCVFRiVCOCU4RiUyMExsZWdhbW9zJTIwYSUyMCU3QmlzbGElN0QhJTIyKSUyMCUwQSUyMCUyMHByaW50KCUyMiVGMCU5RiU5NCU4RCUyMEJ1c2NhbmRvJTIwdGVzb3Jvcy4uLiUyMCElMjIpJTBBJTIwJTIwcHJpbnQoJTIyJUYwJTlGJTkyJUIwJTIwJUMyJUExVGVzb3JvJTIwZW5jb250cmFkbyElMjIpJTBBJTIwJTIwcHJpbnQoJTIyLS0tJTIyKSUwQSUwQSUyMyUyMCVGMCU5RiU4RiVCNCVFMiU4MCU4RCVFMiU5OCVBMCVFRiVCOCU4RiUyMCVDMiVBMUVzY3JpYmUlMjB0dSUyMGMlQzMlQjNkaWdvJTIwYXF1JUMzJUFEISUwQSUyMyUyMEVqZW1wbG8lM0ElMjBjcmVhciUyMHVuYSUyMGxpc3RhJTIwZGUlMjB0ZXNvcm9z"
     allow="clipboard-read; clipboard-write; fullscreen"
     loading="lazy"
   ></iframe>
+
+  <!-- Log opcional para ver eventos -->
+  <div class="log" id="log">[log]\n</div>
+
+  <script>
+    const dot   = document.getElementById('dot');
+    const label = document.getElementById('label');
+    const logEl = document.getElementById('log');
+    const ide   = document.getElementById('ide');
+
+    const setEstado = (tipo, texto) => {
+      dot.className = 'dot';
+      if (tipo === 'running') dot.classList.add('running');
+      if (tipo === 'ok')      dot.classList.add('ok');
+      if (tipo === 'error')   dot.classList.add('error');
+      label.textContent = texto || '…';
+    };
+
+    const log = (msg) => {
+      const t = new Date().toLocaleTimeString();
+      logEl.textContent += `[${t}] ${msg}\n`;
+      logEl.scrollTop = logEl.scrollHeight;
+    };
+
+    // Estado inicial
+    setEstado('', 'Cargando iframe…');
+
+    // Cuando carga el iframe (no confundir con "IDE listo")
+    ide.addEventListener('load', () => {
+      setEstado('', 'Iframe cargado; esperando IDE…');
+      log('iframe: load');
+    });
+
+    // Escuchar los mensajes del IDE (mismo origen)
+    window.addEventListener('message', (ev) => {
+      if (ev.origin !== window.location.origin) return;   // seguridad
+      const data = ev.data || {};
+      if (data.source !== 'IDE') return;
+
+      if (data.type === 'ide:ready') {
+        setEstado('', 'IDE listo ✓');
+        log('ide:ready');
+      }
+      if (data.type === 'run:start') {
+        setEstado('running', 'Ejecutando…');
+        log('run:start');
+      }
+      if (data.type === 'run:complete') {
+        if (data.success) {
+          setEstado('ok', 'Ejecución OK ✓');
+          log('run:complete success');
+        } else {
+          setEstado('error', 'Error en ejecución');
+          log(`run:complete error: ${data.error || '(sin detalle)'}`);
+        }
+      }
+      if (data.type === 'ide:error') {
+        setEstado('error', 'Error inicializando IDE');
+        log(`ide:error: ${data.message || '(sin detalle)'}`);
+      }
+    });
+
+    // Watchdog: si en 5s no llega "ide:ready", avisamos
+    setTimeout(() => {
+      if (label.textContent.includes('IDE listo')) return;
+      log('watchdog: no llegó ide:ready aún');
+      label.textContent = 'Esperando IDE… (tarda más de lo normal)';
+    }, 5000);
+  </script>
 </body>
 </html>
