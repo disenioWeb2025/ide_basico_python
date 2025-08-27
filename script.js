@@ -1,16 +1,12 @@
-// Pyodide se cargará dinámicamente
-
+// ========= Estado global =========
 let pyodide;
 let isLoading = true;
 
-// Variables globales para input
-let inputResolver = null;
-
-// Bandera para indicar ejecución exitosa
+// Estado de ejecución (expuesto globalmente)
 window.pythonExecutionSuccess = false;
 window.pythonExecutionError = null;
 
-// --- AVISOS AL PADRE (postMessage) ---
+// ========= Utilidad: avisos al padre =========
 function notifyParent(data) {
   try {
     if (window.parent && window.parent !== window) {
@@ -21,233 +17,198 @@ function notifyParent(data) {
   }
 }
 
-// Funciones para canvas turtle flotante - CORREGIDAS
-function showTurtleCanvas() {
-  console.log("🐢 Mostrando canvas turtle...");
-
-  // Verificar si ya existe el overlay y container
-  let overlay = document.getElementById("turtle-overlay");
-  let container = document.getElementById("turtle-container");
-
-  if (!overlay) {
-    overlay = document.createElement("div");
-    overlay.id = "turtle-overlay";
-    overlay.style.position = "fixed";
-    overlay.style.top = "0";
-    overlay.style.left = "0";
-    overlay.style.width = "100%";
-    overlay.style.height = "100%";
-    overlay.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
-    overlay.style.zIndex = "9998";
-    overlay.style.display = "none";
-    document.body.appendChild(overlay);
-  }
-
-  if (!container) {
-    container = document.createElement("div");
-    container.id = "turtle-container";
-    container.style.position = "fixed";
-    container.style.top = "50%";
-    container.style.left = "50%";
-    container.style.transform = "translate(-50%, -50%)";
-    container.style.zIndex = "9999";
-    container.style.backgroundColor = "white";
-    container.style.border = "2px solid #333";
-    container.style.borderRadius = "8px";
-    container.style.boxShadow = "0px 10px 40px rgba(0, 0, 0, 0.5)";
-    container.style.padding = "10px";
-    container.style.display = "none";
-
-    // Encabezado con título y botón de cerrar
-    const header = document.createElement("div");
-    header.style.display = "flex";
-    header.style.justifyContent = "space-between";
-    header.style.alignItems = "center";
-    header.style.marginBottom = "8px";
-
-    const title = document.createElement("span");
-    title.textContent = "Canvas Turtle 🐢";
-    title.style.fontWeight = "bold";
-
-    const closeBtn = document.createElement("button");
-    closeBtn.textContent = "Cerrar ✖";
-    closeBtn.style.padding = "6px 12px";
-    closeBtn.style.border = "none";
-    closeBtn.style.borderRadius = "4px";
-    closeBtn.style.background = "#e74c3c";
-    closeBtn.style.color = "white";
-    closeBtn.style.cursor = "pointer";
-    closeBtn.onclick = () => {
-      document.getElementById("turtle-overlay").style.display = "none";
-      document.getElementById("turtle-container").style.display = "none";
-    };
-
-    header.appendChild(title);
-    header.appendChild(closeBtn);
-
-    // Canvas
-    const canvas = document.createElement("canvas");
-    canvas.id = "turtle-canvas";
-    canvas.width = 800;
-    canvas.height = 600;
-    canvas.style.border = "1px solid #ccc";
-    canvas.style.backgroundColor = "white";
-
-    container.appendChild(header);
-    container.appendChild(canvas);
-    document.body.appendChild(container);
-  }
-
-  // Obtener referencias actualizadas
-  overlay = document.getElementById("turtle-overlay");
-  container = document.getElementById("turtle-container");
-  const canvas = document.getElementById("turtle-canvas");
-
-  if (container && overlay && canvas) {
-    // Asegurarse de que el canvas esté configurado correctamente
-    canvas.width = 800;
-    canvas.height = 600;
-
-    // Mostrar el overlay y container
-    overlay.style.display = "block";
-    container.style.display = "block";
-
-    console.log("✅ Canvas mostrado correctamente");
-    console.log("Canvas dimensiones:", canvas.width, "x", canvas.height);
-
-    // Forzar un repintado del canvas
-    const ctx = canvas.getContext("2d");
-    ctx.fillStyle = "white";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    return true;
-  } else {
-    console.error("❌ No se encontraron elementos del canvas");
-    return false;
-  }
+// ========= UI mínima =========
+function setStatus(text, cls) {
+  const el = document.getElementById("status");
+  if (!el) return;
+  el.textContent = text;
+  el.className = `status-top ${cls || ''}`.trim();
 }
 
-// Hacer la función disponible globalmente
-window.showTurtleCanvas = showTurtleCanvas;
+function appendOutput(text, isErr = false) {
+  const out = document.getElementById("output");
+  if (!out) return;
+  out.textContent += (isErr ? "❌ " : "") + text;
+  // scroll al final
+  out.scrollTop = out.scrollHeight;
+}
 
+function clearOutputToDefault() {
+  const out = document.getElementById("output");
+  if (!out) return;
+  out.textContent = "Python 3.10 | Pyodide\nEjecuta tu código para ver la salida...";
+}
+
+// ========= Canvas Turtle opcional (no bloqueante) =========
+function showTurtleCanvas() {
+  try {
+    let overlay = document.getElementById("turtle-overlay");
+    let container = document.getElementById("turtle-container");
+
+    if (!overlay) {
+      overlay = document.createElement("div");
+      overlay.id = "turtle-overlay";
+      Object.assign(overlay.style, {
+        position: "fixed", top: "0", left: "0", width: "100%", height: "100%",
+        backgroundColor: "rgba(0,0,0,.5)", zIndex: "9998", display: "none"
+      });
+      document.body.appendChild(overlay);
+    }
+
+    if (!container) {
+      container = document.createElement("div");
+      container.id = "turtle-container";
+      Object.assign(container.style, {
+        position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)",
+        zIndex: "9999", background: "#fff", border: "2px solid #333",
+        borderRadius: "8px", boxShadow: "0 10px 40px rgba(0,0,0,.5)", padding: "10px",
+        display: "none"
+      });
+
+      const header = document.createElement("div");
+      Object.assign(header.style, { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" });
+      const title = document.createElement("span");
+      title.textContent = "Canvas Turtle 🐢";
+      title.style.fontWeight = "bold";
+      const btn = document.createElement("button");
+      btn.textContent = "Cerrar ✖";
+      Object.assign(btn.style, { padding: "6px 12px", border: "none", borderRadius: "4px", background: "#e74c3c", color: "#fff", cursor: "pointer" });
+      btn.onclick = () => { overlay.style.display = "none"; container.style.display = "none"; };
+
+      const canvas = document.createElement("canvas");
+      canvas.id = "turtle-canvas";
+      canvas.width = 800; canvas.height = 600;
+      canvas.style.border = "1px solid #ccc";
+      canvas.style.background = "#fff";
+
+      header.appendChild(title); header.appendChild(btn);
+      container.appendChild(header); container.appendChild(canvas);
+      document.body.appendChild(container);
+    }
+
+    const canvas = document.getElementById("turtle-canvas");
+    if (canvas) {
+      overlay.style.display = "block";
+      container.style.display = "block";
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      return true;
+    }
+  } catch (e) {
+    console.warn("Turtle overlay falló:", e);
+  }
+  return false;
+}
+window.showTurtleCanvas = showTurtleCanvas;
 window.closeTurtleCanvas = function () {
-  const overlay = document.getElementById("turtle-overlay");
-  const container = document.getElementById("turtle-container");
-  if (overlay) overlay.style.display = "none";
-  if (container) container.style.display = "none";
+  const o = document.getElementById("turtle-overlay");
+  const c = document.getElementById("turtle-container");
+  if (o) o.style.display = "none";
+  if (c) c.style.display = "none";
 };
 
-// Funciones para manejo de input
-function requestInput(prompt) {
-  return new Promise((resolve) => {
-    inputResolver = resolve;
-    const inputSection = document.getElementById("input-section");
-    const inputPrompt = document.getElementById("input-prompt");
-    const inputField = document.getElementById("input-field");
+// ========= Input =========
+let inputResolver = null;
 
-    inputPrompt.textContent = prompt;
-    inputField.value = "";
-    inputSection.classList.remove("input-hidden");
-    inputField.focus();
-  });
+function requestInput(promptText) {
+  // Si tenés UI propia:
+  const section = document.getElementById("input-section");
+  const promptEl = document.getElementById("input-prompt");
+  const field = document.getElementById("input-field");
+  if (section && promptEl && field) {
+    return new Promise((resolve) => {
+      inputResolver = resolve;
+      promptEl.textContent = promptText || "";
+      field.value = "";
+      section.classList.remove("input-hidden");
+      field.focus();
+    });
+  }
+  // Fallback: prompt del navegador
+  return Promise.resolve(window.prompt(promptText || "") ?? "");
 }
 
 function submitInput() {
-  const inputSection = document.getElementById("input-section");
-  const inputField = document.getElementById("input-field");
-
+  const section = document.getElementById("input-section");
+  const field = document.getElementById("input-field");
   if (inputResolver) {
-    inputResolver(inputField.value);
+    const val = field ? field.value : "";
+    inputResolver(val);
     inputResolver = null;
-    inputSection.classList.add("input-hidden");
+    if (section) section.classList.add("input-hidden");
   }
 }
+{
+  const btn = document.getElementById("submit-input");
+  if (btn) btn.addEventListener("click", submitInput);
+  document.addEventListener("keypress", (e) => {
+    if (e.target && e.target.id === "input-field" && e.key === "Enter") submitInput();
+  });
+}
 
-// Vincular el botón de enviar
-document.getElementById("submit-input").addEventListener("click", submitInput);
-
-// Permitir Enter para enviar
-document.addEventListener("keypress", (e) => {
-  if (e.target.id === "input-field" && e.key === "Enter") {
-    submitInput();
-  }
-});
-
-// Funciones auxiliares para la página padre
-window.getPythonExecutionStatus = function() {
-  return {
-    success: window.pythonExecutionSuccess,
-    error: window.pythonExecutionError,
-    isLoading: isLoading
-  };
+// ========= Exponer estado a otros (por si querés pollear desde el padre) =========
+window.getPythonExecutionStatus = function () {
+  return { success: window.pythonExecutionSuccess, error: window.pythonExecutionError, isLoading };
 };
-
-window.resetExecutionStatus = function() {
+window.resetExecutionStatus = function () {
   window.pythonExecutionSuccess = false;
   window.pythonExecutionError = null;
 };
 
-// Parámetros de ejemplo iniciales
-const defaultCode = `# Mi primer programa en Python
+// ========= Código por defecto y carga desde URL =========
+const DEFAULT_CODE = `# Mi primer programa en Python
 print("Hola, mundo!")
 `;
 
 function cargarCodigoDesdeURL() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const codigoParam = urlParams.get("codigo");
   const editor = document.getElementById("code-editor");
+  if (!editor) return;
 
-  if (codigoParam) {
-    try {
-      // Permitir tanto base64 de URI encoded, como raw URI encoded
-      let decoded;
-      try {
-        decoded = decodeURIComponent(atob(codigoParam));
-      } catch (_) {
-        decoded = decodeURIComponent(codigoParam);
-      }
-      editor.value = decoded;
-    } catch (e) {
-      console.warn("No se pudo decodificar 'codigo':", e);
-      editor.value = defaultCode;
-    }
-  } else {
-    editor.value = defaultCode;
-  }
+  const p = new URLSearchParams(window.location.search);
+  const codigoParam = p.get("codigo");
+
+  const smartDecode = (s) => {
+    if (!s || typeof s !== "string") return "";
+    try { return decodeURIComponent(atob(s)); } catch (_) {}
+    try { return decodeURIComponent(s); } catch (_) {}
+    try { return decodeURIComponent(decodeURIComponent(s)); } catch (_) {}
+    return s;
+  };
+
+  editor.value = codigoParam ? (smartDecode(codigoParam) || DEFAULT_CODE) : DEFAULT_CODE;
 }
 
+// ========= Inicialización de Pyodide =========
 async function inicializarPyodide() {
-  const outputElement = document.getElementById("output");
-  const statusElement = document.getElementById("status");
-
+  const output = document.getElementById("output");
   try {
-    statusElement.textContent = "Cargando Python...";
-    statusElement.className = "status-top loading";
+    setStatus("Cargando Python...", "loading");
 
-    // Cargar Pyodide dinámicamente
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js';
-    
-    await new Promise((resolve, reject) => {
-      script.onload = resolve;
-      script.onerror = reject;
-      document.head.appendChild(script);
-    });
+    // Cargar librería de Pyodide
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js";
+    s.crossOrigin = "anonymous";
+    await new Promise((res, rej) => { s.onload = res; s.onerror = rej; document.head.appendChild(s); });
 
+    // Cargar runtime
     pyodide = await loadPyodide({
-      stdout: (text) => {
-        const output = document.getElementById("output");
-        output.textContent += text + "\n";
-      },
-      stderr: (text) => {
-        const output = document.getElementById("output");
-        output.textContent += "❌ " + text + "\n";
-      },
+      stdout: (t) => appendOutput(t + "\n", false),
+      stderr: (t) => appendOutput(t + "\n", true),
     });
 
-    await pyodide.loadPackage(["micropip"]);
+    // (Opcional) No cargamos micropip para evitar fallos de red
+    // await pyodide.loadPackage(["micropip"]);
 
-    // Cargar turtle-like minimal en JS → expuesto como módulo en Pyodide (simplificado)
+    // Definir un input simple (sin async) usando prompt
+    await pyodide.runPythonAsync(`
+import builtins, js
+def input(prompt=""):
+    resp = js.window.prompt(str(prompt))
+    return "" if resp is None else str(resp)
+builtins.input = input
+    `);
+
+    // Mini "turtle" opcional
     await pyodide.runPythonAsync(`
 import js, math
 
@@ -273,155 +234,89 @@ class MiniTurtle:
         try:
             container = js.document.getElementById("turtle-container")
             if not container or container.style.display == "none":
-                # Intentar mostrar el canvas
                 ok = js.window.showTurtleCanvas()
                 if not ok:
-                    print("❌ Error: No se pudo mostrar el canvas")
+                    print("❌ No se pudo mostrar el canvas")
                     return False
-
             canvas = js.document.getElementById(self.canvas_id)
             if canvas is not None:
                 self._ctx = canvas.getContext("2d")
                 return True
             else:
-                print("❌ Error: Canvas no encontrado")
+                print("❌ Canvas no encontrado")
                 return False
         except Exception as e:
-            print(f"❌ Error al mostrar canvas: {e}")
+            print(f"❌ Error canvas: {e}")
             return False
 
     def forward(self, distance):
         if not self._ensure_canvas():
             return
-
-        # Calcular nueva posición
-        rad_angle = math.radians(self.angle)
-        new_x = self.x + distance * math.cos(rad_angle)
-        new_y = self.y + distance * math.sin(rad_angle)
-
-        # Dibujar línea si el lápiz está abajo
+        rad = math.radians(self.angle)
+        nx = self.x + distance * math.cos(rad)
+        ny = self.y + distance * math.sin(rad)
         if self.pen_down:
             self.ctx.beginPath()
             self.ctx.moveTo(self.x, self.y)
-            self.ctx.lineTo(new_x, new_y)
+            self.ctx.lineTo(nx, ny)
             self.ctx.stroke()
+        self.x, self.y = nx, ny
 
-        # Actualizar posición
-        self.x = new_x
-        self.y = new_y
+    def backward(self, distance): self.forward(-distance)
+    def right(self, angle): self.angle += angle
+    def left(self, angle): self.angle -= angle
+    def penup(self): self.pen_down = False
+    def pendown(self): self.pen_down = True
+    def color_(self, color): self.color = color; self.ctx.strokeStyle = color
+    def width_(self, w): self.linewidth = w; self.ctx.lineWidth = w
 
-    def backward(self, distance):
-        self.forward(-distance)
-
-    def right(self, angle):
-        self.angle += angle
-
-    def left(self, angle):
-        self.angle -= angle
-
-    def penup(self):
-        self.pen_down = False
-
-    def pendown(self):
-        self.pen_down = True
-
-    def color_(self, color):
-        self.color = color
-        self.ctx.strokeStyle = color
-
-    def width_(self, w):
-        self.linewidth = w
-        self.ctx.lineWidth = w
-
-def get_turtle():
-    return MiniTurtle()
-
-# Exponer en el namespace global
 turtle = MiniTurtle()
-
 print("🐢 MiniTurtle listo. Usa turtle.forward(100), turtle.left(90), etc.")
-                `);
+    `);
 
-    // Redefinir input en Python para usar el input del navegador
-    await pyodide.runPythonAsync(`
-import sys, builtins, js
-
-def input(prompt=""):
-    # Mostrar prompt en la interfaz y esperar respuesta asíncrona
-    js.document.getElementById("input-section").classList.remove("input-hidden")
-    js.document.getElementById("input-prompt").textContent = str(prompt)
-
-    # Esperar a que el usuario envíe el input desde JS
-    future = js.Promise.new(lambda resolve, reject: setattr(js.window, "inputResolver", resolve))
-    result = await future
-
-    # Ocultar el input
-    js.document.getElementById("input-section").classList.add("input-hidden")
-
-    # Mostrar resultado en el output (simulando stdin)
-    sys.stdout.write(str(result) + '\\n')
-    sys.stdout.flush()
-
-    return str(result)
-
-builtins.input = input
-                `);
-
-    statusElement.textContent = "✅ Python listo";
-    statusElement.className = "status-top ready";
+    setStatus("✅ Python listo", "ready");
     isLoading = false;
-    notifyParent({ type: 'ide:ready', ready: true, ts: Date.now() });
-    
-    // Verificar si hay código embebido y mostrar mensaje apropiado
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('codigo')) {
-      outputElement.textContent = "🔎 Código embebido cargado. ¡Presiona ▶️ Ejecutar para probarlo!";
+    notifyParent({ type: "ide:ready", ready: true, ts: Date.now() });
+
+    // Mensaje inicial de output (según si hay ?codigo=)
+    const p = new URLSearchParams(location.search);
+    if (p.get("codigo")) {
+      if (output) output.textContent = "🔎 Código embebido cargado. ¡Presiona ▶️ Ejecutar!";
     } else {
-      outputElement.textContent = "Python 3.10 | Pyodide\nEjecuta tu código para ver la salida...";
+      clearOutputToDefault();
     }
-      
-  } catch (error) {
-    outputElement.textContent = `❌ Error al cargar Python: ${error.message}`;
-    statusElement.textContent = "❌ Error al cargar";
-    statusElement.className = "status-top error";
-    notifyParent({ type: 'ide:error', message: error.message, ts: Date.now() });
+  } catch (err) {
+    if (output) output.textContent = `❌ Error al cargar Python: ${err && err.message ? err.message : err}`;
+    setStatus("❌ Error al cargar", "error");
+    notifyParent({ type: "ide:error", message: String(err), ts: Date.now() });
   }
 }
 
+// ========= Ejecución =========
 async function ejecutarCodigo() {
-  if (isLoading) {
-    alert("Python aún se está cargando. Por favor espera...");
-    return;
-  }
+  if (isLoading) { alert("Python aún se está cargando. Espera…"); return; }
 
-  const codigo = document.getElementById("code-editor").value;
-  const outputElement = document.getElementById("output");
+  const editor = document.getElementById("code-editor");
   const runBtn = document.getElementById("run-btn");
+  const code = editor ? editor.value : "";
 
-  runBtn.disabled = true;
-  runBtn.textContent = "⏳ Ejecutando...";
-
-  outputElement.textContent = "Ejecutando código...\n\n";
-  notifyParent({ type: 'run:start', ts: Date.now() });
-  document.getElementById("input-section").classList.add("input-hidden");
-
-  // Resetear banderas
+  // Señal al padre: inicio
+  notifyParent({ type: "run:start", ts: Date.now() });
   window.pythonExecutionSuccess = false;
   window.pythonExecutionError = null;
 
+  if (runBtn) { runBtn.disabled = true; runBtn.textContent = "⏳ Ejecutando..."; }
+  const out = document.getElementById("output");
+  if (out) out.textContent = "Ejecutando código...\n\n";
+
   try {
-    // Cargar el canvas turtle si el código lo pide (heurística simple)
-    if (/turtle\./.test(codigo)) {
-      showTurtleCanvas();
-    }
+    if (/turtle\./.test(code)) showTurtleCanvas();
 
-    // Redirigir stdout/stderr
+    // Redirigir stdout/stderr a la UI
     await pyodide.runPythonAsync(`
-import sys
-
+import sys, js
 class JSWriter:
-    def __init__(self, is_err=False):
-        self.is_err = is_err
+    def __init__(self, is_err=False): self.is_err = is_err
     def write(self, s):
         if self.is_err:
             js.console.error(s)
@@ -429,122 +324,93 @@ class JSWriter:
         else:
             js.console.log(s)
             js.document.getElementById("output").textContent += s
-    def flush(self):
-        pass
-
+    def flush(self): pass
 sys.stdout = JSWriter(False)
 sys.stderr = JSWriter(True)
     `);
 
-    // Ejecutar el código del editor
-    await pyodide.runPythonAsync(codigo);
+    // Ejecutar el código
+    await pyodide.runPythonAsync(code);
 
-    // Capturar salida (ya se volcó en el DOM, pero podemos marcar éxito)
-    let output = document.getElementById("output").textContent;
-    const stdout = output; // ya lo tenemos
-    const stderr = "";     // si hubo error, lo atrapamos en catch
+    // Éxito si no saltó excepción
+    window.pythonExecutionSuccess = true;
 
-    // Si no hubo stderr, marcamos éxito
-    if (stdout) {
-      // noop
-    }
+    // Si no imprimió nada, recordatorio amable
+    const txt = (document.getElementById("output") || {}).textContent || "";
+    if (!txt.trim()) appendOutput("✅ Código ejecutado sin salida en consola.\n");
 
-    // En esta implementación, si llegamos aquí sin lanzar excepción → éxito
-    if (!/❌/.test(output)) {
-      window.pythonExecutionSuccess = true;
-    }
-
-    // Mostrar salida si está vacía
-    document.getElementById("output").textContent =
-      output || "✅ Código ejecutado sin salida en consola.";
-      
-  } catch (error) {
-    document.getElementById("output").textContent = `❌ Error: ${error.message}`;
-    console.error("Error completo:", error);
-    window.pythonExecutionError = error.message;
+  } catch (err) {
+    window.pythonExecutionError = err && err.message ? err.message : String(err);
+    const msg = `❌ Error: ${window.pythonExecutionError}\n`;
+    appendOutput(msg, true);
+    console.error("Error completo:", err);
   } finally {
-    runBtn.disabled = false;
-    runBtn.textContent = "▶️ Ejecutar";
-    
-    // Disparar evento personalizado para notificar a la página padre
-    window.dispatchEvent(new CustomEvent('pythonExecutionComplete', {
-      detail: {
-        success: window.pythonExecutionSuccess,
-        error: window.pythonExecutionError
-      }
+    if (runBtn) { runBtn.disabled = false; runBtn.textContent = "▶️ Ejecutar"; }
+    // Evento local y notificación al padre
+    window.dispatchEvent(new CustomEvent("pythonExecutionComplete", {
+      detail: { success: window.pythonExecutionSuccess, error: window.pythonExecutionError }
     }));
-    notifyParent({ type: 'run:complete', success: window.pythonExecutionSuccess, error: window.pythonExecutionError, ts: Date.now() });
+    notifyParent({
+      type: "run:complete",
+      success: window.pythonExecutionSuccess,
+      error: window.pythonExecutionError,
+      ts: Date.now()
+    });
   }
 }
 
-// Funciones varias de UI
+// ========= Acciones de UI =========
 function limpiarEditor() {
-  document.getElementById("code-editor").value = "";
-  document.getElementById("output").textContent =
-    "Python 3.10 | Pyodide\nEjecuta tu código para ver la salida...";
-  closeTurtleCanvas();
-}
-
-// Función auxiliar para mostrar URL cuando clipboard API no funciona
-function mostrarURLEnPrompt(url) {
-  const ok = prompt("No se pudo copiar automáticamente. Copia manualmente la URL:", url);
-  if (ok !== null) {
-    console.log("Usuario vio la URL de embebido.");
-  }
+  const ed = document.getElementById("code-editor");
+  if (ed) ed.value = "";
+  clearOutputToDefault();
+  window.closeTurtleCanvas();
 }
 
 function copiarURLEmbebido() {
   try {
-    const editor = document.getElementById("code-editor");
-    const codigo = editor.value;
+    const ed = document.getElementById("code-editor");
+    const codigo = ed ? ed.value : "";
+    const cod = btoa(encodeURIComponent(codigo)); // base64 de URI-encoded
+    const base = window.location.origin + window.location.pathname;
+    const url = `${base}?codigo=${cod}`;
 
-    // Generar URL embebida: base64 sobre URI encoded → más seguro
-    const codigoCodificado = btoa(encodeURIComponent(codigo));
-    const urlBase = window.location.origin + window.location.pathname;
-    const urlEmbebida = `${urlBase}?codigo=${codigoCodificado}`;
-
-    if (urlEmbebida.length > 2000) {
-      alert("⚠️ El código es demasiado largo para embeber en URL (≈>2000 caracteres). Considera acortarlo o publicar el código en un gist/paste.");
+    if (url.length > 2000) {
+      alert("⚠️ URL muy larga (≈>2000 chars). Considera un gist/paste.");
       return;
     }
-
-    // Intentar copiar
     if (navigator.clipboard && window.isSecureContext) {
-      navigator.clipboard.writeText(urlEmbebida)
-        .then(() => alert("🔗 URL copiada al portapapeles:\n\n" + urlEmbebida))
-        .catch((e) => {
-          console.warn("Fallo clipboard API:", e);
-          mostrarURLEnPrompt(urlEmbebida);
-        });
+      navigator.clipboard.writeText(url).then(() => alert("🔗 URL copiada:\n\n" + url))
+      .catch((e) => { console.warn("Clipboard falló:", e); prompt("Copiá la URL:", url); });
     } else {
-      mostrarURLEnPrompt(urlEmbebida);
+      prompt("Copiá la URL:", url);
     }
   } catch (e) {
-    console.error("Error generando/copiando URL:", e);
-    alert("Hubo un error generando la URL. Revisa la consola.");
+    console.error("Error generando URL:", e);
+    alert("Error generando URL. Ver consola.");
   }
 }
 
-// Listeners
-document.getElementById("run-btn").addEventListener("click", ejecutarCodigo);
-document.getElementById("copy-url-btn").addEventListener("click", copiarURLEmbebido);
-document.getElementById("clear-btn").addEventListener("click", limpiarEditor);
+// ========= Listeners (con guardas) =========
+{
+  const run = document.getElementById("run-btn");
+  if (run) run.addEventListener("click", ejecutarCodigo);
 
-// Cargar código embebido (si existe en ?codigo=)
+  const copy = document.getElementById("copy-url-btn");
+  if (copy) copy.addEventListener("click", copiarURLEmbebido);
+
+  const clear = document.getElementById("clear-btn");
+  if (clear) clear.addEventListener("click", limpiarEditor);
+}
+
+// ========= Bootstrap =========
 document.addEventListener("DOMContentLoaded", () => {
-  cargarCodigoDesdeURL();
+  try {
+    cargarCodigoDesdeURL();
+  } catch (e) {
+    console.warn("cargarCodigoDesdeURL falló:", e);
+    const ed = document.getElementById("code-editor");
+    if (ed) ed.value = DEFAULT_CODE;
+  }
   inicializarPyodide();
 });
-
-// Fallback para navegadores que no soportan DOMContentLoaded correctamente
-window.addEventListener("load", () => {
-  console.log("🔄 Evento load disparado como fallback...");
-  
-  // Solo ejecutar si no se ejecutó antes
-  const editor = document.getElementById("code-editor");
-  if (editor && editor.value.includes("# Mi primer programa en Python")) {
-    console.log("🔄 Ejecutando carga de código embebido como fallback...");
-    cargarCodigoDesdeURL();
-  }
-});
-
