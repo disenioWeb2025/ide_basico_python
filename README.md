@@ -221,11 +221,13 @@ Si alguna vez embebés **desde otro dominio**, no se podrá medir. En ese caso, 
 ## 📝 Licencia / Créditos
 
 **IDE-BASICO-PYTHON** © 2025 por [Prof. Elizabeth Izquierdo](https://creativecommons.org) está licenciado bajo [Creative Commons Atribución-NoComercial-CompartirIgual 4.0 Internacional](https://creativecommons.org/licenses/by-nc-sa/4.0/).  
-[![CC](https://mirrors.creativecommons.org/presskit/icons/cc.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
-[![BY](https://mirrors.creativecommons.org/presskit/icons/by.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
-[![NC](https://mirrors.creativecommons.org/presskit/icons/nc.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
-[![SA](https://mirrors.creativecommons.org/presskit/icons/sa.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 
+## Soporte y Contribuciones
+
+Para reportar problemas, sugerir mejoras o contribuir al proyecto:
+- Revisar la documentación técnica en los comentarios del código
+- Testear en múltiples navegadores antes de reportar bugs
+- Proponer mejoras pedagógicas, etc. pueden escribir a profe.eliza17@gmail.com 
 ---
 
 ## 📎 Snippets útiles
