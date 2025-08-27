@@ -40,20 +40,32 @@ for i in range(3):
     print("i =", i)`
       },
       {
-        title: 'Turtle rápido',
-        code: `# Ejemplo simple con turtle minimal
-turtle.width_(3)
-turtle.color_("#0a84ff")
-turtle.forward(120)
-turtle.left(90)
-turtle.forward(120)
-print("Listo!")`
+        title: 'Visitando las 5 islas del Tesoro',
+        code: `
+        # Lista de islas en nuestro mapa
+islas = ["Isla Calavera","Isla Loro","Isla Cañón","Isla Sirena","Isla Dorada"]
+
+# El bucle FOR visita cada isla automáticamente
+for isla in islas:
+  print(f"🏴‍☠️ Llegamos a {isla}!") 
+  print("🔍 Buscando tesoros... !")
+  print("💰 ¡Tesoro encontrado!")
+  print("---")
+
+# 🏴‍☠️ ¡Escribe tu código aquí!
+# Ejemplo: crear una lista de tesoros
+`
       },
       {
-        title: 'Error intencional',
-        code: `print("Antes del error")
-1/0
-print("Esto no se verá")`
+        title: 'Contando monedas de oro',
+        code: `# Contamos las monedas en nuestro cofre (del 1 al 10)
+print("💰 Contando las monedas de oro:")
+
+for moneda in range(1,11):
+    print ("Moneda número ", moneda, ": ¡BRILLANTE! ✨")
+
+print("🎉 ¡Tenemos 10 monedas de oro!")
+`
       }
     ];
 
