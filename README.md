@@ -1,7 +1,5 @@
 # IDE Básico de Python (Pyodide) — README
 
-> “Si compila, navegamos. Si corre, ¡abordamos!” 🏴‍☠️
-
 Este proyecto provee un IDE mínimo de **Python en el navegador** usando **Pyodide**.  
 Incluye:
 - Consola de salida y estado.
@@ -26,7 +24,7 @@ ide_basico_python/
 
 ---
 
-## 🧩 Requisitos del DOM del IDE
+## Requisitos del DOM del IDE
 
 Para que `script.js` funcione correctamente, tu HTML del IDE debe incluir:
 
@@ -255,7 +253,8 @@ window.addEventListener('message', (ev) => {
 
 ## 📝 Licencia / Créditos
 
-**IDE-BASICO-PYTHON** © 2025 por [Prof. Elizabeth Izquierdo](https://creativecommons.org) está licenciado bajo [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).  
+**IDE-BASICO-PYTHON** © 2025 por [Prof. Elizabeth Izquierdo](https://creativecommons.org) 
+está licenciado bajo [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).  
 [![Licencia CC BY-NC-SA 4.0](https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 
 ## Soporte y Contribuciones
