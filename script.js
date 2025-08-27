@@ -461,6 +461,18 @@ sys.stderr = original_stderr
     }));
   }
 }
+// Notificar automáticamente a la página padre cuando se ejecute código
+if (window.parent && window.parent !== window) {
+    const mensaje = {
+        type: 'pythonExecutionComplete',
+        success: window.pythonExecutionSuccess,
+        error: window.pythonExecutionError,
+        timestamp: new Date().toISOString()
+    };
+    
+    window.parent.postMessage(mensaje, '*');
+    console.log('🎯 Notificación automática enviada al padre');
+}
 
 function limpiarEditor() {
   document.getElementById("code-editor").value = "";
