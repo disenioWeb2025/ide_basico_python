@@ -220,8 +220,9 @@ Si alguna vez embebés **desde otro dominio**, no se podrá medir. En ese caso, 
 
 ## 📝 Licencia / Créditos
 
-Usalo libremente para docencia y demos.  
-Si el barco hace agua, parchamos en la próxima marea. ⚓️
+**Autora: Prof. Elizabeth Izquierdo**
+**IDE-BASICO-PYTHON** © 2025 por [Prof. Elizabeth Izquierdo](https://creativecommons.org) está licenciado bajo [Creative Commons Atribución-NoComercial-CompartirIgual 4.0 Internacional](https://creativecommons.org/licenses/by-nc-sa/4.0/).  
+[CC](https://mirrors.creativecommons.org/presskit/icons/cc.svg) [BY](https://mirrors.creativecommons.org/presskit/icons/by.svg) [NC](https://mirrors.creativecommons.org/presskit/icons/nc.svg) [SA](https://mirrors.creativecommons.org/presskit/icons/sa.svg)
 
 ---
 
