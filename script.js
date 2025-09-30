@@ -305,22 +305,23 @@ async function ejecutarCodigo() {
     // ✅ SOLUCIÓN DEFINITIVA: Configurar stdout/stderr ANTES de ejecutar
     await pyodide.runPythonAsync(`
 import sys
-import io
+from js import document
 
-class OutputCapture(io.StringIO):
+class OutputCapture:
     def __init__(self, output_id, is_error=False):
-        super().__init__()
         self.output_id = output_id
         self.is_error = is_error
     
     def write(self, text):
-        if text and text.strip():
-            from js import document
+        if text:
             elem = document.getElementById(self.output_id)
             if elem:
                 prefix = "❌ " if self.is_error else ""
                 elem.textContent += prefix + text
         return len(text)
+    
+    def flush(self):
+        pass
 
 # Configurar UNA SOLA VEZ antes de ejecutar
 sys.stdout = OutputCapture("output", False)
