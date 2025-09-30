@@ -190,14 +190,8 @@ async function inicializarPyodide() {
     s.crossOrigin = "anonymous";
     await new Promise((res, rej) => { s.onload = res; s.onerror = rej; document.head.appendChild(s); });
 
-    // Cargar runtime
-    pyodide = await loadPyodide({
-      stdout: (t) => appendOutput(t + "\n", false),
-      stderr: (t) => appendOutput(t + "\n", true),
-    });
-
-    // (Opcional) No cargamos micropip para evitar fallos de red
-    // await pyodide.loadPackage(["micropip"]);
+    // ✅ CORRECCIÓN: Cargar Pyodide sin redirigir stdout/stderr aquí
+    pyodide = await loadPyodide();
 
     // Definir un input simple (sin async) usando prompt
     await pyodide.runPythonAsync(`
@@ -390,6 +384,9 @@ function copiarURLEmbebido() {
     alert("Error generando URL. Ver consola.");
   }
 }
+
+// ========= Exponer ejecutarCodigo globalmente =========
+window.ejecutarCodigo = ejecutarCodigo;
 
 // ========= Listeners (con guardas) =========
 {
