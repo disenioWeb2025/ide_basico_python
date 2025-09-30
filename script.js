@@ -305,32 +305,7 @@ async function ejecutarCodigo() {
   try {
     if (/turtle\./.test(code)) showTurtleCanvas();
 
-    // ✅ CORRECCIÓN: Redirigir stdout/stderr SIN console.log para evitar duplicación
-    await pyodide.runPythonAsync(`
-import sys, js
-
-class JSWriter:
-    def __init__(self, is_err=False): 
-        self.is_err = is_err
-    
-    def write(self, s):
-        if not s:
-            return
-        output_elem = js.document.getElementById("output")
-        if output_elem:
-            if self.is_err:
-                output_elem.textContent += "❌ " + s
-            else:
-                output_elem.textContent += s
-    
-    def flush(self): 
-        pass
-
-sys.stdout = JSWriter(False)
-sys.stderr = JSWriter(True)
-    `);
-
-    // Ejecutar el código
+    // Ejecutar el código directamente - Pyodide redirigirá automáticamente
     await pyodide.runPythonAsync(code);
 
     // Éxito si no saltó excepción
