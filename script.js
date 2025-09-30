@@ -190,7 +190,7 @@ async function inicializarPyodide() {
     s.crossOrigin = "anonymous";
     await new Promise((res, rej) => { s.onload = res; s.onerror = rej; document.head.appendChild(s); });
 
-    // ✅ CORRECCIÓN: Cargar Pyodide sin redirigir stdout/stderr
+    // ✅ SOLUCIÓN: NO configurar stdout/stderr aquí
     pyodide = await loadPyodide();
 
     // Definir un input simple (sin async) usando prompt
@@ -230,17 +230,14 @@ class MiniTurtle:
             if not container or container.style.display == "none":
                 ok = js.window.showTurtleCanvas()
                 if not ok:
-                    print("❌ No se pudo mostrar el canvas")
                     return False
             canvas = js.document.getElementById(self.canvas_id)
             if canvas is not None:
                 self._ctx = canvas.getContext("2d")
                 return True
             else:
-                print("❌ Canvas no encontrado")
                 return False
         except Exception as e:
-            print(f"❌ Error canvas: {e}")
             return False
 
     def forward(self, distance):
@@ -305,20 +302,47 @@ async function ejecutarCodigo() {
   try {
     if (/turtle\./.test(code)) showTurtleCanvas();
 
-    // Ejecutar el código directamente - Pyodide redirigirá automáticamente
+    // ✅ SOLUCIÓN DEFINITIVA: Configurar stdout/stderr ANTES de ejecutar
+    await pyodide.runPythonAsync(`
+import sys
+import io
+
+class OutputCapture(io.StringIO):
+    def __init__(self, output_id, is_error=False):
+        super().__init__()
+        self.output_id = output_id
+        self.is_error = is_error
+    
+    def write(self, text):
+        if text and text.strip():
+            from js import document
+            elem = document.getElementById(self.output_id)
+            if elem:
+                prefix = "❌ " if self.is_error else ""
+                elem.textContent += prefix + text
+        return len(text)
+
+# Configurar UNA SOLA VEZ antes de ejecutar
+sys.stdout = OutputCapture("output", False)
+sys.stderr = OutputCapture("output", True)
+`);
+
+    // Ejecutar el código del usuario
     await pyodide.runPythonAsync(code);
 
     // Éxito si no saltó excepción
     window.pythonExecutionSuccess = true;
 
     // Si no imprimió nada, recordatorio amable
-    const txt = (document.getElementById("output") || {}).textContent || "";
-    if (!txt.trim()) appendOutput("✅ Código ejecutado sin salida en consola.\n");
+    const txt = out ? out.textContent.trim() : "";
+    if (!txt) {
+      if (out) out.textContent = "✅ Código ejecutado sin salida en consola.\n";
+    }
 
   } catch (err) {
     window.pythonExecutionError = err && err.message ? err.message : String(err);
-    const msg = `❌ Error: ${window.pythonExecutionError}\n`;
-    appendOutput(msg, true);
+    const msg = `\n❌ Error: ${window.pythonExecutionError}\n`;
+    if (out) out.textContent += msg;
     console.error("Error completo:", err);
   } finally {
     if (runBtn) { runBtn.disabled = false; runBtn.textContent = "▶️ Ejecutar"; }
@@ -347,7 +371,7 @@ function copiarURLEmbebido() {
   try {
     const ed = document.getElementById("code-editor");
     const codigo = ed ? ed.value : "";
-    const cod = btoa(encodeURIComponent(codigo)); // base64 de URI-encoded
+    const cod = btoa(encodeURIComponent(codigo));
     const base = window.location.origin + window.location.pathname;
     const url = `${base}?codigo=${cod}`;
 
