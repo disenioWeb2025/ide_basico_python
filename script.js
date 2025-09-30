@@ -190,7 +190,7 @@ async function inicializarPyodide() {
     s.crossOrigin = "anonymous";
     await new Promise((res, rej) => { s.onload = res; s.onerror = rej; document.head.appendChild(s); });
 
-    // ✅ CORRECCIÓN: Cargar Pyodide sin redirigir stdout/stderr aquí
+    // ✅ CORRECCIÓN: Cargar Pyodide sin redirigir stdout/stderr
     pyodide = await loadPyodide();
 
     // Definir un input simple (sin async) usando prompt
@@ -265,7 +265,6 @@ class MiniTurtle:
     def width_(self, w): self.linewidth = w; self.ctx.lineWidth = w
 
 turtle = MiniTurtle()
-print("🐢 MiniTurtle listo. Usa turtle.forward(100), turtle.left(90), etc.")
     `);
 
     setStatus("✅ Python listo", "ready");
@@ -301,24 +300,32 @@ async function ejecutarCodigo() {
 
   if (runBtn) { runBtn.disabled = true; runBtn.textContent = "⏳ Ejecutando..."; }
   const out = document.getElementById("output");
-  if (out) out.textContent = "Ejecutando código...\n\n";
+  if (out) out.textContent = "";
 
   try {
     if (/turtle\./.test(code)) showTurtleCanvas();
 
-    // Redirigir stdout/stderr a la UI
+    // ✅ CORRECCIÓN: Redirigir stdout/stderr SIN console.log para evitar duplicación
     await pyodide.runPythonAsync(`
 import sys, js
+
 class JSWriter:
-    def __init__(self, is_err=False): self.is_err = is_err
+    def __init__(self, is_err=False): 
+        self.is_err = is_err
+    
     def write(self, s):
-        if self.is_err:
-            js.console.error(s)
-            js.document.getElementById("output").textContent += "❌ " + s
-        else:
-            js.console.log(s)
-            js.document.getElementById("output").textContent += s
-    def flush(self): pass
+        if not s:
+            return
+        output_elem = js.document.getElementById("output")
+        if output_elem:
+            if self.is_err:
+                output_elem.textContent += "❌ " + s
+            else:
+                output_elem.textContent += s
+    
+    def flush(self): 
+        pass
+
 sys.stdout = JSWriter(False)
 sys.stderr = JSWriter(True)
     `);
