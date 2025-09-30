@@ -14,21 +14,18 @@
           <h1>🐍 Editor Python</h1>
         </div>
       </div>
-
       <div id="status" class="status-top">Cargando Python...</div>
-
       <div class="control-buttons">
-        <button id="run-btn" class="btn btn-ejecutar" onclick="ejecutarCodigo()">
+        <button id="run-btn" class="btn btn-ejecutar">
           ▶️ Ejecutar
         </button>
-        <button class="btn btn-limpiar" onclick="limpiarEditor()">
+        <button id="clear-btn" class="btn btn-limpiar">
           🗑️ Limpiar
         </button>
-        <button class="btn btn-embeber" onclick="generarURLEmbebido()">
+        <button id="copy-url-btn" class="btn btn-embeber">
           🔗 Embeber
         </button>
       </div>
-
       <div class="main-content">
         <div class="editor-panel">
           <h3>✏️ Editor de Código</h3>
@@ -39,12 +36,10 @@
           >
 # Mi primer programa en Python
 print("¡Hola, mundo!")
-
 # Variables
 nombre = "Estudiante"
 edad = 15
 print(f"Hola {nombre}, tienes {edad} años")
-
 # Operaciones matemáticas
 a = 10
 b = 5
@@ -52,7 +47,6 @@ print(f"{a} + {b} = {a + b}")
 print(f"{a} * {b} = {a * b}")</textarea
           >
         </div>
-
         <div class="output-panel">
           <h3>🖥️ Salida del Programa</h3>
           <div id="output" class="output-content">
@@ -68,23 +62,20 @@ print(f"{a} * {b} = {a * b}")</textarea
               id="input-field"
               placeholder="Escribe aquí tu respuesta..."
             />
-            <button class="input-button" onclick="submitInput()">Enviar</button>
+            <button id="submit-input" class="input-button">Enviar</button>
           </div>
         </div>
       </div>
     </div>
-
     <!-- Canvas flotante para turtle -->
-    <div class="canvas-overlay" id="canvas-overlay" onclick="closeTurtleCanvas()"></div>
+    <div class="canvas-overlay" id="canvas-overlay"></div>
     <div id="turtle-container">
-      <button class="canvas-close-btn" onclick="closeTurtleCanvas()">×</button>
+      <button class="canvas-close-btn">×</button>
       <canvas id="turtle-canvas" width="800" height="600"></canvas>
     </div>
-
-    <script src="./script.js?v=2"></script>
+    <script src="./script.js?v=3"></script>
   </body>
 </html>
-
 
 
 
