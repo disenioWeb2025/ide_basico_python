@@ -29,7 +29,6 @@ function appendOutput(text, isErr = false) {
   const out = document.getElementById("output");
   if (!out) return;
   out.textContent += (isErr ? "❌ " : "") + text;
-  // scroll al final
   out.scrollTop = out.scrollHeight;
 }
 
@@ -111,7 +110,6 @@ window.closeTurtleCanvas = function () {
 let inputResolver = null;
 
 function requestInput(promptText) {
-  // Si tenés UI propia:
   const section = document.getElementById("input-section");
   const promptEl = document.getElementById("input-prompt");
   const field = document.getElementById("input-field");
@@ -124,7 +122,6 @@ function requestInput(promptText) {
       field.focus();
     });
   }
-  // Fallback: prompt del navegador
   return Promise.resolve(window.prompt(promptText || "") ?? "");
 }
 
@@ -146,7 +143,7 @@ function submitInput() {
   });
 }
 
-// ========= Exponer estado a otros (por si querés pollear desde el padre) =========
+// ========= Exponer estado a otros =========
 window.getPythonExecutionStatus = function () {
   return { success: window.pythonExecutionSuccess, error: window.pythonExecutionError, isLoading };
 };
@@ -184,53 +181,36 @@ async function inicializarPyodide() {
   try {
     setStatus("Cargando Python...", "loading");
 
-    // Cargar librería de Pyodide
     const s = document.createElement("script");
     s.src = "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js";
     s.crossOrigin = "anonymous";
     await new Promise((res, rej) => { s.onload = res; s.onerror = rej; document.head.appendChild(s); });
 
-    // ✅ SOLUCIÓN: NO configurar stdout/stderr aquí
-    pyodide = await loadPyodide();
+    // SOLUCIÓN FINAL: Configurar stdout SOLO aquí, UNA VEZ
+    pyodide = await loadPyodide({
+      stdout: (text) => {
+        const out = document.getElementById("output");
+        if (out) out.textContent += text;
+      },
+      stderr: (text) => {
+        const out = document.getElementById("output");
+        if (out) out.textContent += "❌ " + text;
+      }
+    });
 
-    // ✅ Configurar stdout/stderr UNA SOLA VEZ durante la inicialización
+    // Input simple
     await pyodide.runPythonAsync(`
-import sys
-from js import document
-
-class OutputCapture:
-    def __init__(self, output_id, is_error=False):
-        self.output_id = output_id
-        self.is_error = is_error
-    
-    def write(self, text):
-        if text:
-            elem = document.getElementById(self.output_id)
-            if elem:
-                prefix = "❌ " if self.is_error else ""
-                elem.textContent += prefix + text
-        return len(text)
-    
-    def flush(self):
-        pass
-
-# Configurar GLOBALMENTE una sola vez
-sys.stdout = OutputCapture("output", False)
-sys.stderr = OutputCapture("output", True)
-`);
-
-    // Definir un input simple (sin async) usando prompt
-    await pyodide.runPythonAsync(`
-import builtins, js
+import builtins
 def input(prompt=""):
-    resp = js.window.prompt(str(prompt))
+    from js import window
+    resp = window.prompt(str(prompt))
     return "" if resp is None else str(resp)
 builtins.input = input
     `);
 
-    // Mini "turtle" opcional
+    // Mini turtle
     await pyodide.runPythonAsync(`
-import js, math
+import math
 
 class MiniTurtle:
     def __init__(self, canvas_id="turtle-canvas"):
@@ -252,18 +232,19 @@ class MiniTurtle:
 
     def _ensure_canvas(self):
         try:
-            container = js.document.getElementById("turtle-container")
+            from js import document, window
+            container = document.getElementById("turtle-container")
             if not container or container.style.display == "none":
-                ok = js.window.showTurtleCanvas()
+                ok = window.showTurtleCanvas()
                 if not ok:
                     return False
-            canvas = js.document.getElementById(self.canvas_id)
+            canvas = document.getElementById(self.canvas_id)
             if canvas is not None:
                 self._ctx = canvas.getContext("2d")
                 return True
             else:
                 return False
-        except Exception as e:
+        except Exception:
             return False
 
     def forward(self, distance):
@@ -294,7 +275,6 @@ turtle = MiniTurtle()
     isLoading = false;
     notifyParent({ type: "ide:ready", ready: true, ts: Date.now() });
 
-    // Mensaje inicial de output (según si hay ?codigo=)
     const p = new URLSearchParams(location.search);
     if (p.get("codigo")) {
       if (output) output.textContent = "🔎 Código embebido cargado. ¡Presiona ▶️ Ejecutar!";
@@ -316,7 +296,6 @@ async function ejecutarCodigo() {
   const runBtn = document.getElementById("run-btn");
   const code = editor ? editor.value : "";
 
-  // Señal al padre: inicio
   notifyParent({ type: "run:start", ts: Date.now() });
   window.pythonExecutionSuccess = false;
   window.pythonExecutionError = null;
@@ -328,14 +307,11 @@ async function ejecutarCodigo() {
   try {
     if (/turtle\./.test(code)) showTurtleCanvas();
 
-    // ✅ NO volver a configurar stdout - ya está configurado en la inicialización
-    // Ejecutar el código del usuario directamente
+    // IMPORTANTE: NO reconfigurar stdout aquí - ya está configurado
     await pyodide.runPythonAsync(code);
 
-    // Éxito si no saltó excepción
     window.pythonExecutionSuccess = true;
 
-    // Si no imprimió nada, recordatorio amable
     const txt = out ? out.textContent.trim() : "";
     if (!txt) {
       if (out) out.textContent = "✅ Código ejecutado sin salida en consola.\n";
@@ -348,7 +324,6 @@ async function ejecutarCodigo() {
     console.error("Error completo:", err);
   } finally {
     if (runBtn) { runBtn.disabled = false; runBtn.textContent = "▶️ Ejecutar"; }
-    // Evento local y notificación al padre
     window.dispatchEvent(new CustomEvent("pythonExecutionComplete", {
       detail: { success: window.pythonExecutionSuccess, error: window.pythonExecutionError }
     }));
@@ -393,10 +368,9 @@ function copiarURLEmbebido() {
   }
 }
 
-// ========= Exponer ejecutarCodigo globalmente =========
 window.ejecutarCodigo = ejecutarCodigo;
 
-// ========= Listeners (con guardas) =========
+// ========= Listeners =========
 {
   const run = document.getElementById("run-btn");
   if (run) run.addEventListener("click", ejecutarCodigo);
