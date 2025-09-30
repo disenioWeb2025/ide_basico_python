@@ -1,6 +1,7 @@
 // ========= Estado global =========
 let pyodide;
 let isLoading = true;
+let editor; // Editor CodeMirror
 
 // Estado de ejecución (expuesto globalmente)
 window.pythonExecutionSuccess = false;
@@ -158,8 +159,8 @@ print("Hola, mundo!")
 `;
 
 function cargarCodigoDesdeURL() {
-  const editor = document.getElementById("code-editor");
-  if (!editor) return;
+  const textarea = document.getElementById("code-editor");
+  if (!textarea) return;
 
   const p = new URLSearchParams(window.location.search);
   const codigoParam = p.get("codigo");
@@ -172,7 +173,45 @@ function cargarCodigoDesdeURL() {
     return s;
   };
 
-  editor.value = codigoParam ? (smartDecode(codigoParam) || DEFAULT_CODE) : DEFAULT_CODE;
+  const codigo = codigoParam ? (smartDecode(codigoParam) || DEFAULT_CODE) : DEFAULT_CODE;
+  textarea.value = codigo;
+  
+  // Si CodeMirror ya está inicializado, actualizar su valor
+  if (editor) {
+    editor.setValue(codigo);
+  }
+}
+
+// ========= Inicializar CodeMirror =========
+function inicializarEditor() {
+  const textarea = document.getElementById("code-editor");
+  if (!textarea || typeof CodeMirror === 'undefined') return;
+
+  try {
+    editor = CodeMirror.fromTextArea(textarea, {
+      mode: "python",
+      theme: "monokai",
+      lineNumbers: true,
+      indentUnit: 4,
+      indentWithTabs: false,
+      lineWrapping: true,
+      autoCloseBrackets: true,
+      matchBrackets: true
+    });
+
+    // Sincronizar con el textarea original
+    editor.on('change', function() {
+      textarea.value = editor.getValue();
+    });
+
+    // Cargar código desde URL si existe
+    const codigo = textarea.value;
+    if (codigo) {
+      editor.setValue(codigo);
+    }
+  } catch (e) {
+    console.warn('CodeMirror no se pudo inicializar:', e);
+  }
 }
 
 // ========= Inicialización de Pyodide =========
@@ -186,7 +225,7 @@ async function inicializarPyodide() {
     s.crossOrigin = "anonymous";
     await new Promise((res, rej) => { s.onload = res; s.onerror = rej; document.head.appendChild(s); });
 
-    // SOLUCIÓN FINAL: Configurar stdout SOLO aquí, UNA VEZ
+    // Configurar stdout SOLO aquí, UNA VEZ
     pyodide = await loadPyodide({
       stdout: (text) => {
         const out = document.getElementById("output");
@@ -292,9 +331,9 @@ turtle = MiniTurtle()
 async function ejecutarCodigo() {
   if (isLoading) { alert("Python aún se está cargando. Espera…"); return; }
 
-  const editor = document.getElementById("code-editor");
   const runBtn = document.getElementById("run-btn");
-  const code = editor ? editor.value : "";
+  // Obtener código desde CodeMirror si existe, sino del textarea
+  const code = editor ? editor.getValue() : document.getElementById("code-editor").value;
 
   notifyParent({ type: "run:start", ts: Date.now() });
   window.pythonExecutionSuccess = false;
@@ -307,7 +346,7 @@ async function ejecutarCodigo() {
   try {
     if (/turtle\./.test(code)) showTurtleCanvas();
 
-    // IMPORTANTE: NO reconfigurar stdout aquí - ya está configurado
+    // NO reconfigurar stdout - ya está configurado
     await pyodide.runPythonAsync(code);
 
     window.pythonExecutionSuccess = true;
@@ -338,16 +377,19 @@ async function ejecutarCodigo() {
 
 // ========= Acciones de UI =========
 function limpiarEditor() {
-  const ed = document.getElementById("code-editor");
-  if (ed) ed.value = "";
+  if (editor) {
+    editor.setValue("");
+  } else {
+    const ed = document.getElementById("code-editor");
+    if (ed) ed.value = "";
+  }
   clearOutputToDefault();
   window.closeTurtleCanvas();
 }
 
 function copiarURLEmbebido() {
   try {
-    const ed = document.getElementById("code-editor");
-    const codigo = ed ? ed.value : "";
+    const codigo = editor ? editor.getValue() : document.getElementById("code-editor").value;
     const cod = btoa(encodeURIComponent(codigo));
     const base = window.location.origin + window.location.pathname;
     const url = `${base}?codigo=${cod}`;
@@ -386,6 +428,8 @@ window.ejecutarCodigo = ejecutarCodigo;
 document.addEventListener("DOMContentLoaded", () => {
   try {
     cargarCodigoDesdeURL();
+    // Esperar un poco para que CodeMirror cargue antes de inicializarlo
+    setTimeout(inicializarEditor, 100);
   } catch (e) {
     console.warn("cargarCodigoDesdeURL falló:", e);
     const ed = document.getElementById("code-editor");
