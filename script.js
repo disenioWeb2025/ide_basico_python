@@ -193,6 +193,32 @@ async function inicializarPyodide() {
     // ✅ SOLUCIÓN: NO configurar stdout/stderr aquí
     pyodide = await loadPyodide();
 
+    // ✅ Configurar stdout/stderr UNA SOLA VEZ durante la inicialización
+    await pyodide.runPythonAsync(`
+import sys
+from js import document
+
+class OutputCapture:
+    def __init__(self, output_id, is_error=False):
+        self.output_id = output_id
+        self.is_error = is_error
+    
+    def write(self, text):
+        if text:
+            elem = document.getElementById(self.output_id)
+            if elem:
+                prefix = "❌ " if self.is_error else ""
+                elem.textContent += prefix + text
+        return len(text)
+    
+    def flush(self):
+        pass
+
+# Configurar GLOBALMENTE una sola vez
+sys.stdout = OutputCapture("output", False)
+sys.stderr = OutputCapture("output", True)
+`);
+
     // Definir un input simple (sin async) usando prompt
     await pyodide.runPythonAsync(`
 import builtins, js
@@ -302,33 +328,8 @@ async function ejecutarCodigo() {
   try {
     if (/turtle\./.test(code)) showTurtleCanvas();
 
-    // ✅ SOLUCIÓN DEFINITIVA: Configurar stdout/stderr ANTES de ejecutar
-    await pyodide.runPythonAsync(`
-import sys
-from js import document
-
-class OutputCapture:
-    def __init__(self, output_id, is_error=False):
-        self.output_id = output_id
-        self.is_error = is_error
-    
-    def write(self, text):
-        if text:
-            elem = document.getElementById(self.output_id)
-            if elem:
-                prefix = "❌ " if self.is_error else ""
-                elem.textContent += prefix + text
-        return len(text)
-    
-    def flush(self):
-        pass
-
-# Configurar UNA SOLA VEZ antes de ejecutar
-sys.stdout = OutputCapture("output", False)
-sys.stderr = OutputCapture("output", True)
-`);
-
-    // Ejecutar el código del usuario
+    // ✅ NO volver a configurar stdout - ya está configurado en la inicialización
+    // Ejecutar el código del usuario directamente
     await pyodide.runPythonAsync(code);
 
     // Éxito si no saltó excepción
