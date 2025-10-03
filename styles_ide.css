@@ -124,17 +124,17 @@ body {
   box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
 }
 
-/* --- ESTILOS DEL PANEL DE SALIDA CORREGIDOS Y SINCRONIZADOS --- */
+/* --- ESTILOS DEL PANEL DE SALIDA CORREGIDOS --- */
 
 .output-panel {
-  background: #1a1a1a; /* RESTAURADO: Fondo oscuro (para contener el negro) */
+  background: #1a1a1a; /* Restaurado a oscuro (como se ve en la imagen) */
   border-radius: 10px;
   padding: 15px;
   border: 2px solid #333;
 }
 
 .output-panel h3 {
-  color: #495057; /* CORREGIDO: Texto gris oscuro para simetría y visibilidad */
+  color: #495057; /* CORREGIDO: Texto oscuro para ser visible sobre el fondo gris claro del encabezado */
   margin-bottom: 15px;
   font-size: 1.1em;
 }
