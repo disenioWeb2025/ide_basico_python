@@ -267,8 +267,4 @@ body {
 }
 
 
- /* REGLA CRÍTICA PARA IGUALAR LA ALTURA DEL EDITOR DE CÓDIGO */ 
- .CodeMirror { 
-     height: 400px !important; /* Fuerza la altura del componente del editor */
- }
 
