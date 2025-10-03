@@ -125,10 +125,10 @@ body {
 }
 
 .output-panel {
-  background: #1a1a1a;
-  border-radius: 10px;
-  padding: 15px;
-  border: 2px solid #333;
+  background: #2a2a3a; /* Nuevo fondo: Un gris muy oscuro o azul negruzco */
+  border-radius: 10px;
+  padding: 15px;
+  border: 2px solid #333;
 }
 
 .output-panel h3 {
@@ -270,6 +270,7 @@ body {
 .CodeMirror {
     height: 400px !important; /* ¡Asegura que la ventana del editor sea de 400px! */
 }
+
 
 
 
