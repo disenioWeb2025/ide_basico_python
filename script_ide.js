@@ -29,8 +29,15 @@ function setStatus(text, cls) {
 function appendOutput(text, isErr = false) {
   const out = document.getElementById("output");
   if (!out) return;
-  out.textContent += (isErr ? "❌ " : "") + text;
-  out.scrollTop = out.scrollHeight;
+
+  // 1. Normaliza los saltos de línea de Windows (\r\n) a Unix (\n)
+  const cleanText = text.replace(/\r\n/g, "\n");
+  
+  // 2. AÑADE UN SALTO DE LÍNEA EXPLÍCITO al final
+  out.textContent += (isErr ? "❌ " : "") + cleanText + "\n"; 
+  
+  // Asegura el scroll al final
+  out.scrollTop = out.scrollHeight; 
 }
 
 function clearOutputToDefault() {
@@ -226,30 +233,15 @@ async function inicializarPyodide() {
 
 // CÓDIGO CORREGIDO DENTRO DE inicializarPyodide (Salto de línea garantizado)
 pyodide = await loadPyodide({
-  stdout: (text) => {
-    const out = document.getElementById("output");
-    if (out) {
-      // Normaliza los saltos de línea de Windows (\r\n) a Unix (\n)
-      const cleanText = text.replace(/\r\n/g, "\n");
-      
-      // Anexa el texto. Si el texto no termina con un salto de línea, Pyodide 
-      // lo pone en la misma línea, pero si el texto ya contiene varios \n
-      // el 'pre-wrap' CSS debería manejarlo.
-      out.textContent += cleanText; 
-      out.scrollTop = out.scrollHeight;
-    }
-  },
-  stderr: (text) => {
-    const out = document.getElementById("output");
-    if (out) {
-      const cleanText = text.replace(/\r\n/g, "\n");
-      // Muestra el error y asegura el salto de línea al final
-      out.textContent += "❌ " + cleanText;
-      out.scrollTop = out.scrollHeight;
-    }
-  }
+  // Llama a appendOutput, pasando el texto y NO forzando isErr=true
+  stdout: (text) => {
+    appendOutput(text, false);
+  },
+  // Llama a appendOutput, pasando el texto y forzando isErr=true
+  stderr: (text) => {
+    appendOutput(text, true);
+  }
 });
-
     // Input simple
     await pyodide.runPythonAsync(`
 import builtins
