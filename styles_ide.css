@@ -124,17 +124,17 @@ body {
   box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
 }
 
-/* --- ESTILOS DEL PANEL DE SALIDA (Sincronizados) --- */
+/* --- ESTILOS DEL PANEL DE SALIDA CORREGIDOS Y SINCRONIZADOS --- */
 
 .output-panel {
-  background: #f8f9fa; /* Sincronizado con .editor-panel */
+  background: #1a1a1a; /* RESTAURADO: Fondo oscuro para la consola */
   border-radius: 10px;
   padding: 15px;
-  border: 2px solid #e9ecef; /* Sincronizado con .editor-panel */
+  border: 2px solid #333;
 }
 
 .output-panel h3 {
-  color: #495057; /* Texto Visible y Sincronizado con .editor-panel h3 */
+  color: #495057; /* CORREGIDO: Texto oscuro para que se vea sobre el encabezado gris claro/blanco */
   margin-bottom: 15px;
   font-size: 1.1em;
 }
@@ -272,7 +272,6 @@ body {
 .CodeMirror {
     height: 400px !important;
 }
-
 
 
 
