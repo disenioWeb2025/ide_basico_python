@@ -225,17 +225,26 @@ async function inicializarPyodide() {
     s.crossOrigin = "anonymous";
     await new Promise((res, rej) => { s.onload = res; s.onerror = rej; document.head.appendChild(s); });
 
-    // Configurar stdout SOLO aquí, UNA VEZ
-    pyodide = await loadPyodide({
-      stdout: (text) => {
-        const out = document.getElementById("output");
-        if (out) out.textContent += text;
-      },
-      stderr: (text) => {
-        const out = document.getElementById("output");
-        if (out) out.textContent += "❌ " + text;
-      }
-    });
+    // CÓDIGO CORREGIDO (SOLUCIÓN DEL SALTO DE LÍNEA)
+pyodide = await loadPyodide({
+  stdout: (text) => {
+    const out = document.getElementById("output");
+    if (out) {
+      // Usamos textContent, pero la clave es manejar el salto de línea al final del texto
+      const cleanText = text.replace(/\r\n/g, "\n");
+      out.textContent += cleanText;
+      out.scrollTop = out.scrollHeight;
+    }
+  },
+  stderr: (text) => {
+    const out = document.getElementById("output");
+    if (out) {
+      const cleanText = text.replace(/\r\n/g, "\n");
+      out.textContent += "❌ " + cleanText;
+      out.scrollTop = out.scrollHeight;
+    }
+  }
+});
 
     // Input simple
     await pyodide.runPythonAsync(`
