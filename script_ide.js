@@ -225,14 +225,16 @@ async function inicializarPyodide() {
     s.crossOrigin = "anonymous";
     await new Promise((res, rej) => { s.onload = res; s.onerror = rej; document.head.appendChild(s); });
 
-    // CÓDIGO CORREGIDO (SOLUCIÓN DEL SALTO DE LÍNEA)
+// CÓDIGO CORREGIDO DENTRO DE inicializarPyodide
 pyodide = await loadPyodide({
   stdout: (text) => {
     const out = document.getElementById("output");
     if (out) {
-      // Usamos textContent, pero la clave es manejar el salto de línea al final del texto
+      // 1. Normaliza los saltos de línea de Windows (\r\n) a Unix (\n)
       const cleanText = text.replace(/\r\n/g, "\n");
-      out.textContent += cleanText;
+      // 2. Anexa el texto limpio. El CSS se encargará de mostrarlo.
+      out.textContent += cleanText; 
+      // 3. Asegura el scroll para que veas la última línea
       out.scrollTop = out.scrollHeight;
     }
   },
