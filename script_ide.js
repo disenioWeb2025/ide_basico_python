@@ -26,6 +26,7 @@ function setStatus(text, cls) {
   el.className = `status-top ${cls || ''}`.trim();
 }
 
+// **CORRECCIÓN 1: Garantizar Salto de Línea en la Consola**
 function appendOutput(text, isErr = false) {
   const out = document.getElementById("output");
   if (!out) return;
@@ -33,7 +34,7 @@ function appendOutput(text, isErr = false) {
   // 1. Normaliza los saltos de línea de Windows (\r\n) a Unix (\n)
   const cleanText = text.replace(/\r\n/g, "\n");
   
-  // 2. AÑADE UN SALTO DE LÍNEA EXPLÍCITO al final
+  // 2. AÑADE UN SALTO DE LÍNEA EXPLÍCITO al final para separar la salida de cada print()
   out.textContent += (isErr ? "❌ " : "") + cleanText + "\n"; 
   
   // Asegura el scroll al final
@@ -160,36 +161,49 @@ window.resetExecutionStatus = function () {
   window.pythonExecutionError = null;
 };
 
-// Código por defecto y carga desde URL
-// const DEFAULT_CODE = `# Mi primer programa en Python\nprint("Hola, mundo!")`; // Eliminar esta línea
+// ========= Código por defecto y carga desde URL =========
+// NOTA: Se elimina la variable DEFAULT_CODE y se usa el valor del HTML como respaldo.
 
+// **CORRECCIÓN 2: Lógica de carga sin romper el script y con decodificación UTF-8 segura**
 function cargarCodigoDesdeURL() {
-  // CÓDIGO CORREGIDO (DENTRO DE cargarCodigoDesdeURL)
-const smartDecode = (s) => {
-    if (!s || typeof s !== "string") return "";
-    
-    // 1. Intento principal: Decodificar Base64 + Unicode-safe
-    try { 
-      // atob + escape revierte btoa + unescape
-      return decodeURIComponent(escape(atob(s))); 
-    } catch (_) {} 
-    
-    // 2. Intentos de respaldo (se mantienen, pero ya no deberían ser necesarios)
-    try { return decodeURIComponent(s); } catch (_) {}
-    try { return decodeURIComponent(decodeURIComponent(s)); } catch (_) {}
-    return s;
-  };
+  const textarea = document.getElementById("code-editor");
+  if (!textarea) return;
 
-  // Si hay parámetro, usa el decodificado; si no, usa el valor que está en el HTML
-  const codigo = codigoParam ? (smartDecode(codigoParam) || codigoDefault) : codigoDefault; 
-  
-  textarea.value = codigo;
-  
-  // Si CodeMirror ya está inicializado, actualizar su valor
-  if (editor) {
-    editor.setValue(codigo);
-  }
+  const p = new URLSearchParams(window.location.search);
+  const codigoParam = p.get("codigo");
+
+  // --- Lógica de Decodificación UTF-8 Segura (Para URL Embed) ---
+  const smartDecode = (s) => {
+    if (!s || typeof s !== "string") return "";
+    
+    // Método Base64 UTF-8 (decodificación moderna con TextDecoder)
+    try {
+        const raw = atob(s); 
+        const charCodes = raw.split('').map(c => c.charCodeAt(0));
+        const code = new TextDecoder().decode(new Uint8Array(charCodes));
+        return code;
+    } catch (_) {}
+
+    // Respaldo simple (si el código no estaba en Base64)
+    try { return decodeURIComponent(s); } catch (_) {}
+    
+    return s;
+  };
+
+  // Obtener el valor de respaldo del HTML (el código largo)
+  const codigoDefault = textarea.value.trim();
+
+  // Si hay código en la URL, decodifícalo; si no, usa el código de respaldo del HTML.
+  const codigo = codigoParam ? (smartDecode(codigoParam) || codigoDefault) : codigoDefault; 
+  
+  textarea.value = codigo;
+  
+  // Si CodeMirror ya está inicializado, actualizar su valor
+  if (editor) {
+    editor.setValue(codigo);
+  }
 }
+
 // ========= Inicializar CodeMirror =========
 function inicializarEditor() {
   const textarea = document.getElementById("code-editor");
@@ -233,17 +247,16 @@ async function inicializarPyodide() {
     s.crossOrigin = "anonymous";
     await new Promise((res, rej) => { s.onload = res; s.onerror = rej; document.head.appendChild(s); });
 
-// CÓDIGO CORREGIDO DENTRO DE inicializarPyodide (Salto de línea garantizado)
-pyodide = await loadPyodide({
-  // Llama a appendOutput, pasando el texto y NO forzando isErr=true
-  stdout: (text) => {
-    appendOutput(text, false);
-  },
-  // Llama a appendOutput, pasando el texto y forzando isErr=true
-  stderr: (text) => {
-    appendOutput(text, true);
-  }
-});
+    // **CORRECCIÓN 3: Uso de la función appendOutput corregida**
+    pyodide = await loadPyodide({
+      stdout: (text) => {
+        appendOutput(text, false);
+      },
+      stderr: (text) => {
+        appendOutput(text, true);
+      }
+    });
+
     // Input simple
     await pyodide.runPythonAsync(`
 import builtins
@@ -310,7 +323,10 @@ class MiniTurtle:
     def right(self, angle): self.angle += angle
     def left(self, angle): self.angle -= angle
     def penup(self): self.pen_down = False
-    def pendown(self): self.pen_down = True
+    def pendown(self, color="#000000", w=2): 
+        self.pen_down = True
+        self.color_(color)
+        self.width_(w)
     def color_(self, color): self.color = color; self.ctx.strokeStyle = color
     def width_(self, w): self.linewidth = w; self.ctx.lineWidth = w
 
@@ -353,14 +369,13 @@ async function ejecutarCodigo() {
   try {
     if (/turtle\./.test(code)) showTurtleCanvas();
 
-    // NO reconfigurar stdout - ya está configurado
     await pyodide.runPythonAsync(code);
 
     window.pythonExecutionSuccess = true;
 
     const txt = out ? out.textContent.trim() : "";
     if (!txt) {
-      if (out) out.textContent = "✅ Código ejecutado sin salida en consola.\n";
+      if (out) out.textContent += "✅ Código ejecutado sin salida en consola.\n";
     }
 
   } catch (err) {
@@ -394,15 +409,14 @@ function limpiarEditor() {
   window.closeTurtleCanvas();
 }
 
+// **CORRECCIÓN 4: Lógica de copiado con codificación UTF-8 segura**
 function copiarURLEmbebido() {
   try {
     const codigo = editor ? editor.getValue() : document.getElementById("code-editor").value;
     
-    // CÓDIGO ORIGINAL (Inseguro)
-    // const cod = btoa(encodeURIComponent(codigo)); 
-
-    // CÓDIGO CORREGIDO (Seguro para Unicode)
-     const cod = btoa(unescape(encodeURIComponent(codigo)));
+    // LÓGICA DE CODIFICACIÓN UTF-8 SEGURA
+    const utf8Bytes = new TextEncoder().encode(codigo);
+    const cod = btoa(String.fromCharCode(...utf8Bytes)); // Base64 de bytes UTF-8
     
     const base = window.location.origin + window.location.pathname;
     const url = `${base}?codigo=${cod}`;
@@ -445,8 +459,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(inicializarEditor, 100);
   } catch (e) {
     console.warn("cargarCodigoDesdeURL falló:", e);
-    const ed = document.getElementById("code-editor");
-    if (ed) ed.value = DEFAULT_CODE;
+    // Si falla la carga desde URL, no hacemos nada para respetar el valor del HTML
   }
   inicializarPyodide();
 });
