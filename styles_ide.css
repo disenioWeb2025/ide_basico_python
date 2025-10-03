@@ -34,7 +34,7 @@
 
  .main-content { 
    display: grid; 
-   grid-template-columns: 1fr 1fr; 
+   grid-template-columns: 1fr 1fr; /* CLAVE: Dos columnas iguales */
    gap: 20px; 
    padding: 20px; 
    min-height: 500px; 
@@ -90,6 +90,7 @@
    background: #138496; 
  } 
 
+ /* --- PANEL DEL EDITOR --- */
  .editor-panel { 
    background: #f8f9fa; 
    border-radius: 10px; 
@@ -123,16 +124,17 @@
    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1); 
  } 
 
- /* --- CORRECCIONES CLAVE EN EL PANEL DE SALIDA --- */
+ /* --- PANEL DE SALIDA (Simetría y Altura) --- */
+
  .output-panel { 
-   background: #f8f9fa; /* FONDO DE ENCABEZADO: Sincronizado para que el encabezado sea gris claro */ 
+   background: #f8f9fa; /* Fondo del ENCABEZADO: Sincronizado para que el título se vea */ 
    border-radius: 10px; 
    padding: 15px; 
-   border: 2px solid #e9ecef; /* BORDE: Sincronizado */ 
+   border: 2px solid #e9ecef; /* Borde: Sincronizado */ 
  } 
 
  .output-panel h3 { 
-   color: #495057; /* TEXTO CORREGIDO: Gris oscuro para que se vea sobre el fondo gris claro */ 
+   color: #495057; /* Texto del TÍTULO: Sincronizado (gris oscuro) para visibilidad */ 
    margin-bottom: 15px; 
    font-size: 1.1em; 
  } 
@@ -266,7 +268,7 @@
    background: white; 
  } 
 
- /* FUERZA LA ALTURA DE LA LIBRERÍA CODEMIRROR */ 
+ /* REGLA CRÍTICA PARA IGUALAR LA ALTURA DEL EDITOR DE CÓDIGO */ 
  .CodeMirror { 
-     height: 400px !important; /* Altura: Sincronizada con .output-content */ 
+     height: 400px !important; /* Fuerza la altura del componente del editor */
  }
