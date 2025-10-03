@@ -142,7 +142,7 @@ body {
   color: #00ff00;
   font-family: "Courier New", monospace;
   padding: 15px;
-  height: 400px;
+  height: 600px;
   border-radius: 8px;
   overflow-y: auto;
   white-space: pre-wrap;
@@ -265,5 +265,6 @@ body {
   border-radius: 8px;
   background: white;
 }
+
 
 
