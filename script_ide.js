@@ -164,17 +164,19 @@ window.resetExecutionStatus = function () {
 // const DEFAULT_CODE = `# Mi primer programa en Python\nprint("Hola, mundo!")`; // Eliminar esta línea
 
 function cargarCodigoDesdeURL() {
-  const textarea = document.getElementById("code-editor");
-  if (!textarea) return;
-
-  const p = new URLSearchParams(window.location.search);
-  const codigoParam = p.get("codigo");
-  
-  // Usa el contenido del HTML como valor de respaldo (textarea.value)
-  const codigoDefault = textarea.value.trim(); 
-
-  const smartDecode = (s) => {
-    // ... (mantiene la lógica de decodificación) ...
+  // CÓDIGO CORREGIDO (DENTRO DE cargarCodigoDesdeURL)
+const smartDecode = (s) => {
+    if (!s || typeof s !== "string") return "";
+    
+    // 1. Intento principal: Decodificar Base64 + Unicode-safe
+    try { 
+      // atob + escape revierte btoa + unescape
+      return decodeURIComponent(escape(atob(s))); 
+    } catch (_) {} 
+    
+    // 2. Intentos de respaldo (se mantienen, pero ya no deberían ser necesarios)
+    try { return decodeURIComponent(s); } catch (_) {}
+    try { return decodeURIComponent(decodeURIComponent(s)); } catch (_) {}
     return s;
   };
 
@@ -395,7 +397,13 @@ function limpiarEditor() {
 function copiarURLEmbebido() {
   try {
     const codigo = editor ? editor.getValue() : document.getElementById("code-editor").value;
-    const cod = btoa(encodeURIComponent(codigo));
+    
+    // CÓDIGO ORIGINAL (Inseguro)
+    // const cod = btoa(encodeURIComponent(codigo)); 
+
+    // CÓDIGO CORREGIDO (Seguro para Unicode)
+     const cod = btoa(unescape(encodeURIComponent(codigo)));
+    
     const base = window.location.origin + window.location.pathname;
     const url = `${base}?codigo=${cod}`;
 
