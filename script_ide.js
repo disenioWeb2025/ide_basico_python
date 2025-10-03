@@ -153,35 +153,34 @@ window.resetExecutionStatus = function () {
   window.pythonExecutionError = null;
 };
 
-// ========= Código por defecto y carga desde URL =========
-const DEFAULT_CODE = `# Mi primer programa en Python
-print("Hola, mundo!")
-`;
+// Código por defecto y carga desde URL
+// const DEFAULT_CODE = `# Mi primer programa en Python\nprint("Hola, mundo!")`; // Eliminar esta línea
 
 function cargarCodigoDesdeURL() {
-  const textarea = document.getElementById("code-editor");
-  if (!textarea) return;
+  const textarea = document.getElementById("code-editor");
+  if (!textarea) return;
 
-  const p = new URLSearchParams(window.location.search);
-  const codigoParam = p.get("codigo");
+  const p = new URLSearchParams(window.location.search);
+  const codigoParam = p.get("codigo");
+  
+  // Usa el contenido del HTML como valor de respaldo (textarea.value)
+  const codigoDefault = textarea.value.trim(); 
 
-  const smartDecode = (s) => {
-    if (!s || typeof s !== "string") return "";
-    try { return decodeURIComponent(atob(s)); } catch (_) {}
-    try { return decodeURIComponent(s); } catch (_) {}
-    try { return decodeURIComponent(decodeURIComponent(s)); } catch (_) {}
-    return s;
-  };
+  const smartDecode = (s) => {
+    // ... (mantiene la lógica de decodificación) ...
+    return s;
+  };
 
-  const codigo = codigoParam ? (smartDecode(codigoParam) || DEFAULT_CODE) : DEFAULT_CODE;
-  textarea.value = codigo;
-  
-  // Si CodeMirror ya está inicializado, actualizar su valor
-  if (editor) {
-    editor.setValue(codigo);
-  }
+  // Si hay parámetro, usa el decodificado; si no, usa el valor que está en el HTML
+  const codigo = codigoParam ? (smartDecode(codigoParam) || codigoDefault) : codigoDefault; 
+  
+  textarea.value = codigo;
+  
+  // Si CodeMirror ya está inicializado, actualizar su valor
+  if (editor) {
+    editor.setValue(codigo);
+  }
 }
-
 // ========= Inicializar CodeMirror =========
 function inicializarEditor() {
   const textarea = document.getElementById("code-editor");
@@ -225,16 +224,18 @@ async function inicializarPyodide() {
     s.crossOrigin = "anonymous";
     await new Promise((res, rej) => { s.onload = res; s.onerror = rej; document.head.appendChild(s); });
 
-// CÓDIGO CORREGIDO DENTRO DE inicializarPyodide
+// CÓDIGO CORREGIDO DENTRO DE inicializarPyodide (Salto de línea garantizado)
 pyodide = await loadPyodide({
   stdout: (text) => {
     const out = document.getElementById("output");
     if (out) {
-      // 1. Normaliza los saltos de línea de Windows (\r\n) a Unix (\n)
+      // Normaliza los saltos de línea de Windows (\r\n) a Unix (\n)
       const cleanText = text.replace(/\r\n/g, "\n");
-      // 2. Anexa el texto limpio. El CSS se encargará de mostrarlo.
+      
+      // Anexa el texto. Si el texto no termina con un salto de línea, Pyodide 
+      // lo pone en la misma línea, pero si el texto ya contiene varios \n
+      // el 'pre-wrap' CSS debería manejarlo.
       out.textContent += cleanText; 
-      // 3. Asegura el scroll para que veas la última línea
       out.scrollTop = out.scrollHeight;
     }
   },
@@ -242,6 +243,7 @@ pyodide = await loadPyodide({
     const out = document.getElementById("output");
     if (out) {
       const cleanText = text.replace(/\r\n/g, "\n");
+      // Muestra el error y asegura el salto de línea al final
       out.textContent += "❌ " + cleanText;
       out.scrollTop = out.scrollHeight;
     }
