@@ -1,4 +1,4 @@
-/* script_ide.js - IDE Pyodide + input async + turtle canvas (versión corregida final) */
+/* script_ide.js - IDE Pyodide + input async + turtle canvas (versión corregida final, Opción A: NO repoblar select) */
 
 let pyodide = null;
 let editor = null;
@@ -20,7 +20,7 @@ const embedBtn = $("embed-btn");
 /* Consola de salida: siempre agrega un salto de línea */
 function printToOutput(text) {
   if (text == null) return;
-  outputEl.textContent += String(text) + "\n"; // Siempre agrega un salto de línea
+  outputEl.textContent += String(text) + "\n";
   outputEl.scrollTop = outputEl.scrollHeight;
 }
 
@@ -65,81 +65,9 @@ function sanitizePlantillas() {
   }
 }
 
+/* Opción A: NO repoblar el select para mantener los optgroups del HTML */
 function repoblarSelectPlantillas() {
-  const sel = document.getElementById("plantillas-select");
-  if (!sel || !window.PLANTILLAS) return;
-
-  // Limpiar
-  while (sel.firstChild) sel.removeChild(sel.firstChild);
-
-  // Opción vacía
-  const optEmpty = document.createElement("option");
-  optEmpty.value = "";
-  optEmpty.textContent = "— Seleccioná un ejemplo —";
-  sel.appendChild(optEmpty);
-
-  // Definir categorías y el orden deseado
-  const categorias = [
-    {
-      label: "🎯 Básicos",
-      items: [
-        ["hola_mundo", "👋 Hola Mundo"],
-        ["saludo_con_input", "⌨️ Saludo con Input"],
-        ["suma_dos_numeros", "➕ Suma de Dos Números"],
-        ["promedio_tres", "📊 Promedio de Tres Números"],
-      ],
-    },
-    {
-      label: "🔀 Control de Flujo",
-      items: [
-        ["condicional_basico", "🔀 Condicional Básico"],
-        ["adivina_numero", "🎲 Adivina el Número"],
-        ["bucles_basico", "🔁 Bucles Básico"],
-        ["tabla_multiplicar", "✖️ Tabla de Multiplicar"],
-        ["while_acumulador", "🔄 While Acumulador"],
-      ],
-    },
-    {
-      label: "🐢 Gráficos con Turtle",
-      items: [
-        ["turtle_basico", "🟦 Cuadrado Básico"],
-        ["turtle_flor", "🌸 Flor con Pétalos"],
-        ["turtle_estrella", "⭐ Estrella"],
-        ["turtle_petalos_rellenos", "🌺 Pétalos Rellenos"],
-        ["turtle_spiro_giro", "🌀 Espiral Giro"],
-        ["turtle_cuadricula", "📐 Cuadrícula"],
-      ],
-    },
-    {
-      label: "🎮 Proyectos y Juegos",
-      items: [
-        ["juego_piedra_papel_tijera", "✊✋✌️ Piedra Papel Tijera"],
-        ["funcion_area_circulo", "⭕ Área de Círculo"],
-        ["fizzbuzz", "🎯 FizzBuzz"],
-        ["random_dados", "🎲 Tirar Dados"],
-        ["menu_simple", "📋 Menú Simple"],
-        ["input_y_casting", "🔄 Input y Casting"],
-      ],
-    },
-  ];
-
-  // Renderizar optgroups según lo que exista realmente en PLANTILLAS
-  for (const cat of categorias) {
-    const group = document.createElement("optgroup");
-    group.label = cat.label;
-
-    let added = 0;
-    for (const [key, label] of cat.items) {
-      if (key in window.PLANTILLAS) {
-        const opt = document.createElement("option");
-        opt.value = key;
-        opt.textContent = label;
-        group.appendChild(opt);
-        added++;
-      }
-    }
-    if (added > 0) sel.appendChild(group);
-  }
+  // Intencionalmente vacío: usamos el <select> con <optgroup> definido en index_plantillas.html
 }
 
 function cargarPlantilla() {
@@ -189,7 +117,7 @@ let turtleCtx = null;
 
 function ensureTurtleCanvas() {
   if (turtleOverlay) return;
-  
+
   turtleOverlay = document.createElement("div");
   Object.assign(turtleOverlay.style, {
     position: "fixed",
@@ -213,7 +141,7 @@ function ensureTurtleCanvas() {
   turtleCanvas = document.createElement("canvas");
   turtleCanvas.width = 640;
   turtleCanvas.height = 480;
-  turtleCanvas.style.background = "#ffffff";
+  turtleCanvas.style.background = "#ffff";
   panel.appendChild(turtleCanvas);
 
   const closeBtn = document.createElement("button");
@@ -241,7 +169,7 @@ function ensureTurtleCanvas() {
   header.style.alignItems = "center";
   header.style.justifyContent = "space-between";
   header.style.marginBottom = "6px";
-  
+
   const title = document.createElement("span");
   title.textContent = "Canvas Turtle";
   title.style.color = "#ddd";
@@ -261,7 +189,7 @@ function ensureTurtleCanvas() {
 /* Carga Pyodide y configura entorno */
 async function loadPython() {
   statusEl.textContent = "Cargando Python...";
-  
+
   if (!window.loadPyodide) {
     const s = document.createElement("script");
     s.src = "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js";
@@ -271,10 +199,10 @@ async function loadPython() {
       s.onerror = () => rej(new Error("No se pudo cargar pyodide.js"));
     });
   }
-  
+
   pyodide = await loadPyodide({ indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/" });
 
-  // Captura stdout/stderr directamente, sin agregar newlines desde Pyodide
+  // Captura stdout/stderr directamente
   pyodide.setStdout({ batched: (s) => printToOutput(s) });
   pyodide.setStderr({ batched: (s) => printToOutput(s) });
 
@@ -291,7 +219,7 @@ async function loadPython() {
         switch (cmd) {
           case "bg": {
             ctx.save();
-            ctx.fillStyle = args[0] || "#ffffff";
+            ctx.fillStyle = args[0] || "#ffff";
             ctx.fillRect(0, 0, turtleCanvas.width, turtleCanvas.height);
             ctx.restore();
             break;
@@ -349,7 +277,7 @@ async function loadPython() {
 
   pyodide.registerJsModule("ide_bridge", jsModule);
 
-  // Bootstrap Python: define input async y módulo turtle
+  // Bootstrap Python
   const bootstrapPy = `
 from ide_bridge import js_show_input, js_wait_input, js_ensure_turtle_canvas, js_turtle_draw
 import math, sys, asyncio
@@ -370,7 +298,7 @@ class _TurtleCanvas:
         self._pen_down = True
         self._visible = True
         self._speed = 0
-        self._bg = "#ffffff"
+        self._bg = "#ffff"
         self._pencolor = "#d33"
         self._fillcolor = "#f9a"
         self._linewidth = 2
@@ -418,7 +346,7 @@ class _TurtleCanvas:
     def width(self, w): self._linewidth = max(1, int(w))
     def pensize(self, w): self.width(w)
 
-    def bgcolor(self, c="#ffffff"):
+    def bgcolor(self, c="#ffff"):
         self._bg = str(c)
         self._ops.append(["bg", self._bg])
         self._commit_ops()
@@ -488,7 +416,7 @@ class _TurtleCanvas:
         total = 360.0 if extent is None else float(extent)
         if steps is None:
             steps = max(12, int(abs(total) / 2))
-            steps = min(360, steps)
+        steps = min(360, steps)
         step_deg = total / steps
         chord = 2.0 * abs(r) * math.sin(math.radians(abs(step_deg) / 2.0))
         turn = step_deg
@@ -504,18 +432,18 @@ class _TurtleCanvas:
 class _TurtleModule:
     def __init__(self):
         self._default = None
-    
+
     def _get_default(self):
         if self._default is None:
             self._default = _TurtleCanvas()
         return self._default
-    
+
     def reset(self):
         self._default = None
-    
+
     def Turtle(self):
         return _TurtleCanvas()
-    
+
     # API módulo
     def bgcolor(self, c): self._get_default().bgcolor(c)
     def color(self, *args): self._get_default().color(*args)
@@ -577,7 +505,7 @@ except Exception:
 
     // 3) Hint si usan input sin await
     if (/\binput\s*\(/.test(code) && !/\bawait\s+input\s*\(/.test(code)) {
-      printToOutput('⚠️ Recordá usar: await input("...")'); // Ya no necesita \n
+      printToOutput('⚠️ Recordá usar: await input("...")');
     }
 
     // 4) Envolver código en async
@@ -588,7 +516,7 @@ except Exception:
 
     await pyodide.runPythonAsync(wrapped);
   } catch (err) {
-    printToOutput("❌ Error: " + (err && err.message ? err.message : String(err))); // Ya no necesita \n
+    printToOutput("❌ Error: " + (err && err.message ? err.message : String(err)));
     console.error(err);
   } finally {
     isRunning = false;
@@ -596,8 +524,8 @@ except Exception:
 }
 
 /* Limpiar salida */
-function limpiarSalida() { 
-  clearOutput(); 
+function limpiarSalida() {
+  clearOutput();
 }
 
 /* Generar link embebible */
@@ -605,9 +533,10 @@ function generarEmbed() {
   const code = getUserCode();
   const compressed = LZString.compressToEncodedURIComponent(code);
   const url = `${location.origin}${location.pathname}?code=${compressed}`;
-  navigator.clipboard.writeText(url)
-    .then(() => printToOutput("🔗 Enlace copiado al portapapeles.")) // Ya no necesita \n
-    .catch(() => printToOutput("🔗 Enlace: " + url)); // Ya no necesita \n
+  navigator.clipboard
+    .writeText(url)
+    .then(() => printToOutput("🔗 Enlace copiado al portapapeles."))
+    .catch(() => printToOutput("🔗 Enlace: " + url));
 }
 
 /* Cargar código desde query ?code= */
@@ -635,12 +564,13 @@ window.addEventListener("DOMContentLoaded", async () => {
   try {
     initEditor();
     initUI();
-    // Asegurar que PLANTILLAS esté limpia y repoblar el select
+    // Mantenemos PLANTILLAS “limpia”, pero NO repoblamos el select para preservar los optgroups del HTML
     sanitizePlantillas();
-    repoblarSelectPlantillas();
+    // repoblarSelectPlantillas(); // <- Omitido intencionalmente (Opción A)
     maybeLoadFromQuery();
     await loadPython();
-    cargarPlantilla(); // Carga la plantilla por defecto después de que Pyodide esté listo
+    // Si hay una plantilla seleccionada por defecto en el select, cargarla
+    cargarPlantilla();
     console.log("✅ IDE listo");
   } catch (e) {
     console.error(e);
