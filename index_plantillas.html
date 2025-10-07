@@ -1,119 +1,584 @@
-<!DOCTYPE html>
-<html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>🐍 IDE Python - Con Plantillas</title>
+/* script_ide.js - IDE Pyodide + input async + turtle canvas (versión corregida final) */
 
-    <link rel="stylesheet" href="./styles_ide.css" type="text/css">
+let pyodide = null;
+let editor = null;
+let isRunning = false;
 
-    <!-- CodeMirror para resaltado de sintaxis -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
+/* Utilidades DOM */
+const $ = (id) => document.getElementById(id);
+const statusEl = $("status");
+const outputEl = $("output");
+const inputSection = $("input-section");
+const inputPromptEl = $("input-prompt");
+const inputField = $("input-field");
+const submitInputBtn = $("submit-input");
+const selectPlantillas = $("plantillas-select");
+const runBtn = $("run-btn");
+const clearBtn = $("clear-btn");
+const embedBtn = $("embed-btn");
+const manualBtn = $("manual-btn");
+const manualModal = $("manual-modal");
+const modalCloseBtn = $("modal-close-btn");
 
-    <!-- LZString para compartir/embeber código -->
-    <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
+/* Consola de salida: siempre agrega un salto de línea */
+function printToOutput(text) {
+  if (text == null) return;
+  outputEl.textContent += String(text) + "\n";
+  outputEl.scrollTop = outputEl.scrollHeight;
+}
 
-    <style>
-      .header-with-title { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 15px 20px; color: white; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-      .header-with-title h1 { margin: 0; font-size: 24px; display: flex; align-items: center; gap: 10px; }
-      .header-with-title p { margin: 5px 0 0 0; font-size: 14px; opacity: 0.9; }
-      .plantillas-section { background: #f8f9fa; padding: 15px 20px; border-bottom: 2px solid #e0e0e0; display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
-      .plantillas-section label { font-weight: bold; color: #333; font-size: 14px; }
-      #plantillas-select { flex: 1; min-width: 200px; padding: 10px 15px; border: 2px solid #ddd; border-radius: 6px; background-color: white; cursor: pointer; font-size: 14px; transition: all 0.3s; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-      #plantillas-select:hover { border-color: #667eea; box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2); }
-      #plantillas-select:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
-      .info-badge { background: #667eea; color: white; padding: 8px 15px; border-radius: 20px; font-size: 13px; font-weight: 500; }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <div class="header-with-title">
-        <h1>🐍 IDE Python Interactivo</h1>
-        <p>Aprendé programación con ejemplos listos para usar</p>
-      </div>
+function clearOutput() {
+  outputEl.textContent = "";
+}
 
-      <div class="plantillas-section">
-        <label for="plantillas-select">📚 Elegí una plantilla:</label>
-        <select id="plantillas-select">
-          <option value="">-- Seleccioná un ejemplo --</option>
-          <optgroup label="🎯 Básicos">
-            <option value="hola_mundo">👋 Hola Mundo</option>
-            <option value="saludo_con_input">⌨️ Saludo con Input</option>
-            <option value="suma_dos_numeros">➕ Suma de Dos Números</option>
-            <option value="promedio_tres">📊 Promedio de Tres Números</option>
-          </optgroup>
-          <optgroup label="🔀 Control de Flujo">
-            <option value="condicional_basico">🔀 Condicional Básico</option>
-            <option value="adivina_numero">🎲 Adivina el Número</option>
-            <option value="bucles_basico">🔁 Bucles Básico</option>
-            <option value="tabla_multiplicar">✖️ Tabla de Multiplicar</option>
-            <option value="while_acumulador">🔄 While Acumulador</option>
-          </optgroup>
-          <optgroup label="🐢 Gráficos con Turtle">
-            <option value="turtle_basico">🟦 Cuadrado Básico</option>
-            <option value="turtle_flor">🌸 Flor con Pétalos</option>
-            <option value="turtle_estrella">⭐ Estrella</option>
-            <option value="turtle_petalos_rellenos">🌺 Pétalos Rellenos</option>
-            <option value="turtle_spiro_giro">🌀 Espiral Giro</option>
-            <option value="turtle_cuadricula">📐 Cuadrícula</option>
-          </optgroup>
-          <optgroup label="🎮 Proyectos y Juegos">
-            <option value="juego_piedra_papel_tijera">✊✋✌️ Piedra Papel Tijera</option>
-            <option value="funcion_area_circulo">⭕ Área de Círculo</option>
-            <option value="fizzbuzz">🎯 FizzBuzz</option>
-            <option value="random_dados">🎲 Tirar Dados</option>
-            <option value="menu_simple">📋 Menú Simple</option>
-            <option value="input_y_casting">🔄 Input y Casting</option>
-          </optgroup>
-        </select>
-        <button id="btnManualTurtle" class="btn btn-manual" title="Ver manual de Turtle">📖 Manual Turtle</button>
-        <span class="info-badge">💾 Auto-guardado activo</span>
-      </div>
+/* Editor: CodeMirror o textarea */
+function initEditor() {
+  const textarea = $("code-editor");
+  if (window.CodeMirror) {
+    editor = CodeMirror.fromTextArea(textarea, {
+      mode: "python",
+      theme: "monokai",
+      lineNumbers: true,
+      indentUnit: 4,
+      tabSize: 4,
+      lineWrapping: true,
+    });
+    editor.setSize("100%", "420px");
+  } else {
+    editor = null;
+  }
+}
 
-      <div id="status" class="status-top">Cargando Python...</div>
+function getUserCode() {
+  if (editor) return editor.getValue();
+  return $("code-editor").value;
+}
 
-      <div class="control-buttons">
-        <button id="run-btn" class="btn btn-ejecutar">▶️ Ejecutar</button>
-        <button id="clear-btn" class="btn btn-limpiar">🗑️ Limpiar</button>
-        <button id="embed-btn" class="btn btn-embeber">🔗 Embeber</button>
-      </div>
+function setUserCode(code) {
+  if (editor) editor.setValue(code);
+  else $("code-editor").value = code;
+}
 
-      <div class="main-content">
-        <div class="editor-panel">
-          <h3>✏️ Editor de Código</h3>
-          <textarea id="code-editor" class="code-editor" placeholder="Escribe tu código Python aquí o elegí una plantilla...">print("Hola mundo")</textarea>
-        </div>
+/* Plantillas */
+function cargarPlantilla() {
+  if (!selectPlantillas) return;
+  const key = selectPlantillas.value;
+  if (!key) return; // no tocar el editor si no hay selección válida
+  const plantillas = window.PLANTILLAS || {};
+  const code = plantillas[key];
+  if (typeof code === "string" && code.trim().length > 0) {
+    setUserCode(code);
+  } else {
+    console.warn("Plantilla no encontrada:", key);
+  }
+}
 
-        <div class="output-panel">
-          <h3>🖥️ Salida del Programa</h3>
-          <div id="output" class="output-content">
-            Python 3.11 | Pyodide
-            🐢 Turtle graphics disponible
-            Ejecuta tu código para ver la salida...
-          </div>
+/* Input async bridged al panel */
+let pendingInputResolve = null;
 
-          <div id="input-section" class="input-section input-hidden">
-            <div class="input-prompt" id="input-prompt">Introduce un valor:</div>
-            <input type="text" id="input-field" placeholder="Escribe aquí tu respuesta..." />
-            <button id="submit-input" class="input-button">Enviar</button>
-          </div>
-        </div>
-      </div>
-    </div>
+function showInputPrompt(promptText) {
+  inputPromptEl.textContent = promptText || "Introduce un valor:";
+  inputField.value = "";
+  inputSection.classList.remove("input-hidden");
+  inputField.focus();
+}
 
-    <!-- Modal Manual Turtle -->
-    <div id="modalManual" class="modal" style="display:none;">
-      <div class="modal-content">
-        <button id="cerrarManual" class="modal-close" title="Cerrar">✖</button>
-        <div id="manualContenido" class="markdown-body" style="max-height:70vh; overflow:auto;"></div>
-      </div>
-    </div>
+function hideInputPrompt() {
+  inputSection.classList.add("input-hidden");
+}
 
-    <!-- Scripts: orden correcto -->
-    <script src="./templates.js"></script>
-    <script src="./script_ide.js"></script>
-  </body>
-</html>
+if (submitInputBtn) {
+  submitInputBtn.addEventListener("click", () => {
+    if (pendingInputResolve) {
+      const value = inputField.value;
+      const resolve = pendingInputResolve;
+      pendingInputResolve = null;
+      hideInputPrompt();
+      resolve(value);
+    }
+  });
+}
+
+if (inputField) {
+  inputField.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") submitInputBtn.click();
+  });
+}
+
+/* Turtle Canvas: overlay */
+let turtleOverlay = null;
+let turtleCanvas = null;
+let turtleCtx = null;
+
+function ensureTurtleCanvas() {
+  if (turtleOverlay) return;
+  
+  turtleOverlay = document.createElement("div");
+  Object.assign(turtleOverlay.style, {
+    position: "fixed",
+    inset: "0",
+    background: "rgba(0,0,0,0.4)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: "9999",
+  });
+
+  const panel = document.createElement("div");
+  Object.assign(panel.style, {
+    background: "#111",
+    border: "1px solid #333",
+    borderRadius: "8px",
+    padding: "8px",
+    boxShadow: "0 8px 30px rgba(0,0,0,0.5)",
+  });
+
+  turtleCanvas = document.createElement("canvas");
+  turtleCanvas.width = 640;
+  turtleCanvas.height = 480;
+  turtleCanvas.style.background = "#ffff";
+  panel.appendChild(turtleCanvas);
+
+  const closeBtn = document.createElement("button");
+  closeBtn.textContent = "Cerrar";
+  Object.assign(closeBtn.style, {
+    marginLeft: "8px",
+    padding: "6px 10px",
+    background: "#444",
+    color: "#fff",
+    border: "1px solid #666",
+    borderRadius: "6px",
+    cursor: "pointer",
+  });
+  closeBtn.addEventListener("click", () => {
+    if (turtleOverlay) {
+      document.body.removeChild(turtleOverlay);
+      turtleOverlay = null;
+      turtleCanvas = null;
+      turtleCtx = null;
+    }
+  });
+
+  const header = document.createElement("div");
+  header.style.display = "flex";
+  header.style.alignItems = "center";
+  header.style.justifyContent = "space-between";
+  header.style.marginBottom = "6px";
+  
+  const title = document.createElement("span");
+  title.textContent = "Canvas Turtle";
+  title.style.color = "#ddd";
+  title.style.fontFamily = "system-ui, sans-serif";
+  header.appendChild(title);
+  header.appendChild(closeBtn);
+
+  const wrap = document.createElement("div");
+  wrap.appendChild(header);
+  wrap.appendChild(panel);
+
+  turtleOverlay.appendChild(wrap);
+  document.body.appendChild(turtleOverlay);
+  turtleCtx = turtleCanvas.getContext("2d");
+}
+
+/* Carga Pyodide y configura entorno */
+async function loadPython() {
+  statusEl.textContent = "Cargando Python...";
+  
+  if (!window.loadPyodide) {
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js";
+    document.head.appendChild(s);
+    await new Promise((res, rej) => {
+      s.onload = res;
+      s.onerror = () => rej(new Error("No se pudo cargar pyodide.js"));
+    });
+  }
+  
+  pyodide = await loadPyodide({ indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/" });
+
+  // Captura stdout/stderr directamente
+  pyodide.setStdout({ batched: (s) => printToOutput(s) });
+  pyodide.setStderr({ batched: (s) => printToOutput(s) });
+
+  // Módulo puente JS
+  const jsModule = {
+    js_show_input: (promptText) => { showInputPrompt(promptText || "Introduce un valor:"); },
+    js_wait_input: () => new Promise((resolve) => { pendingInputResolve = resolve; }),
+    js_ensure_turtle_canvas: () => { ensureTurtleCanvas(); return true; },
+    js_turtle_draw: (ops) => {
+      if (!turtleCanvas || !turtleCtx) return;
+      const ctx = turtleCtx;
+      for (const op of ops) {
+        const [cmd, ...args] = op;
+        switch (cmd) {
+          case "bg": {
+            ctx.save();
+            ctx.fillStyle = args[0] || "#ffff";
+            ctx.fillRect(0, 0, turtleCanvas.width, turtleCanvas.height);
+            ctx.restore();
+            break;
+          }
+          case "line": {
+            const [x1, y1, x2, y2, color, width] = args;
+            ctx.save();
+            ctx.strokeStyle = color || "#000";
+            ctx.lineWidth = width || 1;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+            ctx.restore();
+            break;
+          }
+          case "dot": {
+            const [x, y, r, color] = args;
+            ctx.save();
+            ctx.fillStyle = color || "#000";
+            ctx.beginPath();
+            ctx.arc(x, y, r || 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+            break;
+          }
+          case "fillpath": {
+            const [points, color, strokeColor, width] = args;
+            ctx.save();
+            ctx.fillStyle = color || "#000";
+            if (strokeColor) {
+              ctx.strokeStyle = strokeColor;
+              ctx.lineWidth = width || 1;
+            }
+            ctx.beginPath();
+            for (let i = 0; i < points.length; i++) {
+              const [x, y, move] = points[i];
+              if (i === 0 || move) ctx.moveTo(x, y);
+              else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.fill();
+            if (strokeColor) ctx.stroke();
+            ctx.restore();
+            break;
+          }
+          case "clear": {
+            ctx.clearRect(0, 0, turtleCanvas.width, turtleCanvas.height);
+            break;
+          }
+        }
+      }
+    },
+  };
+
+  pyodide.registerJsModule("ide_bridge", jsModule);
+
+  // Bootstrap Python: define input async y módulo turtle
+  const bootstrapPy = `
+from ide_bridge import js_show_input, js_wait_input, js_ensure_turtle_canvas, js_turtle_draw
+import math, sys, asyncio
+
+# input asíncrono
+async def input(prompt=""):
+    js_show_input(str(prompt))
+    s = await js_wait_input()
+    return str(s)
+
+class _TurtleCanvas:
+    def __init__(self, w=640, h=480):
+        self.w = w
+        self.h = h
+        self.x = w / 2
+        self.y = h / 2
+        self.heading = 0.0
+        self._pen_down = True
+        self._visible = True
+        self._speed = 0
+        self._bg = "#ffff"
+        self._pencolor = "#d33"
+        self._fillcolor = "#f9a"
+        self._linewidth = 2
+        self._filling = False
+        self._fill_points = []
+        self._ops = []
+        js_ensure_turtle_canvas()
+        self._ops.append(["bg", self._bg])
+        self._commit_ops()
+
+    def _commit_ops(self):
+        if self._ops:
+            js_turtle_draw(self._ops)
+            self._ops.clear()
+
+    def _record_fill_point(self, move=False):
+        if self._filling:
+            self._fill_points.append([self.x, self.y, bool(move)])
+
+    def speed(self, n=None):
+        if n is None:
+            return self._speed
+        try:
+            self._speed = int(n)
+        except:
+            self._speed = 0
+
+    def title(self, *args, **kwargs): return
+    def shape(self, *args, **kwargs): return
+
+    def color(self, *args):
+        if len(args) == 1:
+            self.pencolor(args[0])
+        elif len(args) >= 2:
+            self.pencolor(args[0]); self.fillcolor(args[1])
+
+    def pencolor(self, c=None):
+        if c is None: return self._pencolor
+        self._pencolor = str(c)
+
+    def fillcolor(self, c=None):
+        if c is None: return self._fillcolor
+        self._fillcolor = str(c)
+
+    def width(self, w): self._linewidth = max(1, int(w))
+    def pensize(self, w): self.width(w)
+
+    def bgcolor(self, c="#ffff"):
+        self._bg = str(c)
+        self._ops.append(["bg", self._bg])
+        self._commit_ops()
+
+    def penup(self): self._pen_down = False
+    def pendown(self): self._pen_down = True
+    def isdown(self): return self._pen_down
+    def hideturtle(self): self._visible = False
+    def showturtle(self): self._visible = True
+    ht = hideturtle; st = showturtle
+
+    def setheading(self, ang): self.heading = float(ang) % 360.0
+    def left(self, ang):  self.heading = (self.heading + float(ang)) % 360.0
+    def right(self, ang): self.heading = (self.heading - float(ang)) % 360.0
+
+    def setx(self, x): self.goto(float(x), self.y)
+    def sety(self, y): self.goto(self.x, float(y))
+    def setpos(self, x, y=None):
+        if y is None and hasattr(x, "__iter__"): x, y = x
+        self.goto(float(x), float(y))
+    setposition = setpos
+
+    def home(self):
+        self.goto(self.w/2, self.h/2)
+        self.setheading(0)
+
+    def goto(self, x, y):
+        x1, y1 = self.x, self.y
+        self.x, self.y = float(x), float(y)
+        if self._pen_down:
+            self._ops.append(["line", x1, y1, self.x, self.y, self._pencolor, self._linewidth])
+        self._record_fill_point(move=False)
+        self._commit_ops()
+
+    def forward(self, d):
+        rad = math.radians(self.heading)
+        nx = self.x + math.cos(rad) * float(d)
+        ny = self.y - math.sin(rad) * float(d)
+        self.goto(nx, ny)
+    fd = forward
+
+    def backward(self, d):
+        self.forward(-float(d))
+    bk = back = backward
+
+    def dot(self, size=3, color=None):
+        col = self._pencolor if color is None else str(color)
+        self._ops.append(["dot", self.x, self.y, float(size), col])
+        self._record_fill_point(move=False)
+        self._commit_ops()
+
+    def begin_fill(self):
+        self._filling = True
+        self._fill_points = [[self.x, self.y, True]]
+
+    def end_fill(self):
+        if self._filling:
+            pts = self._fill_points[:]
+            if len(pts) >= 3:
+                self._ops.append(["fillpath", pts, self._fillcolor, self._pencolor, self._linewidth])
+            self._commit_ops()
+        self._filling = False
+        self._fill_points = []
+
+    def circle(self, radius, extent=None, steps=None):
+        r = float(radius)
+        total = 360.0 if extent is None else float(extent)
+        if steps is None:
+            steps = max(12, int(abs(total) / 2))
+        steps = min(360, steps)
+        step_deg = total / steps
+        chord = 2.0 * abs(r) * math.sin(math.radians(abs(step_deg) / 2.0))
+        turn = step_deg
+        if r < 0:
+            turn = -turn
+        for _ in range(steps):
+            self.forward(chord)
+            self.left(turn)
+
+    beginfill = begin_fill
+    endfill = end_fill
+
+class _TurtleModule:
+    def __init__(self):
+        self._default = None
+    
+    def _get_default(self):
+        if self._default is None:
+            self._default = _TurtleCanvas()
+        return self._default
+    
+    def reset(self):
+        self._default = None
+    
+    def Turtle(self):
+        return _TurtleCanvas()
+    
+    # API módulo
+    def bgcolor(self, c): self._get_default().bgcolor(c)
+    def color(self, *args): self._get_default().color(*args)
+    def pensize(self, w): self._get_default().pensize(w)
+    def penup(self): self._get_default().penup()
+    def pendown(self): self._get_default().pendown()
+    def forward(self, d): self._get_default().forward(d)
+    def left(self, a): self._get_default().left(a)
+    def right(self, a): self._get_default().right(a)
+    def circle(self, r, extent=None, steps=None): self._get_default().circle(r, extent, steps)
+    def begin_fill(self): self._get_default().begin_fill()
+    def end_fill(self): self._get_default().end_fill()
+    def dot(self, size=3, color=None): self._get_default().dot(size, color)
+    def setheading(self, a): self._get_default().setheading(a)
+    def goto(self, x, y): self._get_default().goto(x, y)
+    def done(self): return
+    fd = forward
+    rt = right
+    lt = left
+
+turtle = _TurtleModule()
+sys.modules['turtle'] = turtle
+`;
+
+  await pyodide.runPythonAsync(bootstrapPy);
+
+  statusEl.textContent = "Python 3.11 | Pyodide listo";
+}
+
+/* Ejecutar código del usuario */
+async function ejecutarCodigo() {
+  if (!pyodide || isRunning) return;
+  isRunning = true;
+  clearOutput();
+  const code = getUserCode();
+
+  try {
+    // 1) Limpiar canvas JS
+    if (turtleCtx && turtleCanvas) {
+      turtleCtx.clearRect(0, 0, turtleCanvas.width, turtleCanvas.height);
+    }
+
+    // 2) Reinyectar y resetear módulo turtle ANTES de ejecutar usuario
+    await pyodide.runPythonAsync(`
+import sys
+# Asegurar que nuestro turtle esté registrado
+if 'turtle' not in sys.modules:
+    try:
+        sys.modules['turtle'] = turtle
+    except NameError:
+        pass
+# Resetear estado
+try:
+    import turtle
+    turtle.reset()
+except Exception:
+    pass
+`);
+
+    // 3) Hint si usan input sin await
+    if (/\binput\s*\(/.test(code) && !/\bawait\s+input\s*\(/.test(code)) {
+      printToOutput('⚠️ Recordá usar: await input("...")');
+    }
+
+    // 4) Envolver código en async
+    const wrapped =
+      "async def __user_main__():\n" +
+      code.split("\n").map((line) => "    " + line).join("\n") +
+      "\nawait __user_main__()\n";
+
+    await pyodide.runPythonAsync(wrapped);
+  } catch (err) {
+    printToOutput("❌ Error: " + (err && err.message ? err.message : String(err)));
+    console.error(err);
+  } finally {
+    isRunning = false;
+  }
+}
+
+/* Limpiar salida */
+function limpiarSalida() { 
+  clearOutput(); 
+}
+
+/* Generar link embebible */
+function generarEmbed() {
+  const code = getUserCode();
+  const compressed = LZString.compressToEncodedURIComponent(code);
+  const url = `${location.origin}${location.pathname}?code=${compressed}`;
+  navigator.clipboard.writeText(url)
+    .then(() => printToOutput("🔗 Enlace copiado al portapapeles."))
+    .catch(() => printToOutput("🔗 Enlace: " + url));
+}
+
+/* Cargar código desde query ?code= */
+function maybeLoadFromQuery() {
+  const params = new URLSearchParams(location.search);
+  const c = params.get("code");
+  if (c) {
+    try {
+      const code = LZString.decompressFromEncodedURIComponent(c);
+      if (code) setUserCode(code);
+    } catch (_) {}
+  }
+}
+
+/* Modal del manual */
+function openManual() {
+  if (manualModal) manualModal.classList.add("active");
+}
+
+function closeManual() {
+  if (manualModal) manualModal.classList.remove("active");
+}
+
+/* Eventos UI */
+function initUI() {
+  if (selectPlantillas) selectPlantillas.addEventListener("change", cargarPlantilla);
+  if (runBtn) runBtn.addEventListener("click", ejecutarCodigo);
+  if (clearBtn) clearBtn.addEventListener("click", limpiarSalida);
+  if (embedBtn) embedBtn.addEventListener("click", generarEmbed);
+  if (manualBtn) manualBtn.addEventListener("click", openManual);
+  if (modalCloseBtn) modalCloseBtn.addEventListener("click", closeManual);
+  if (manualModal) {
+    manualModal.addEventListener("click", (e) => {
+      if (e.target === manualModal) closeManual();
+    });
+  }
+}
+
+/* Init */
+window.addEventListener("DOMContentLoaded", async () => {
+  try {
+    initEditor();
+    initUI();
+    maybeLoadFromQuery();
+    await loadPython();
+    console.log("✅ IDE listo");
+  } catch (e) {
+    console.error(e);
+    statusEl.textContent = "Error cargando Python";
+  }
+});
