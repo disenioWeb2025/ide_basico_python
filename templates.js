@@ -192,4 +192,116 @@ except ValueError:
 // Log para verificar que se cargó correctamente
 console.log("✅ PLANTILLAS cargadas:", Object.keys(window.PLANTILLAS));
 
+"manual_turtle_md": `# Manual rápido de Turtle (IDE)
+Este IDE usa un canvas de 640×480. Origen (0,0) en la esquina superior izquierda. Centro en (320, 240). Eje Y crece hacia abajo.
+
+## Crear tortuga y básico
+- t = turtle.Turtle()
+- t.speed(n)   # guarda el valor, no anima
+- t.showturtle() / t.st()
+- t.hideturtle() / t.ht()
+- turtle.done()  # no bloquea
+
+## Posición y movimiento
+- t.goto(x, y)
+- t.setpos(x, y) / t.setposition(x, y)
+- t.setx(x), t.sety(y)
+- t.home()      # centro (320,240) y heading 0
+- t.forward(d) / t.fd(d)
+- t.backward(d) / t.back(d) / t.bk(d)
+- t.setheading(ang), t.left(ang) / t.lt(ang), t.right(ang) / t.rt(ang)
+
+Notas de coordenadas:
+- Origen: (0,0) arriba-izquierda. Centro: (320,240). Y positivo hacia abajo.
+
+## Pluma y colores
+- t.penup(), t.pendown(), t.isdown()
+- t.width(w) / t.pensize(w)
+- t.pencolor(c), t.fillcolor(c), t.color(linea) o t.color(linea, relleno)
+- turtle.bgcolor(c)  # fondo canvas
+
+Colores: nombres CSS (“red”, “gold”, “teal”) o hex (“#ff0000”).
+
+## Figuras y rellenos
+- t.dot(size=3, color=None)
+- t.circle(radius, extent=None, steps=None)
+  - radius > 0: gira a la izquierda; radius < 0: a la derecha.
+  - extent: arco en grados; por defecto 360.
+  - steps: cuántos segmentos (opcional).
+- t.begin_fill(), t.end_fill()
+
+## API del módulo (atajos sin crear 't')
+- turtle.bgcolor(c), turtle.color(...), turtle.pensize(w)
+- turtle.penup(), turtle.pendown()
+- turtle.forward(d), turtle.left(a), turtle.right(a)
+- turtle.circle(r, extent=None, steps=None)
+- turtle.begin_fill(), turtle.end_fill(), turtle.dot(...)
+- turtle.setheading(a), turtle.goto(x, y)
+- turtle.Turtle()  # nueva tortuga
+- turtle.reset()   # resetea tortuga por defecto
+
+## Ejemplos
+Cuadrado:
+\`\`\`python
+import turtle
+t = turtle.Turtle()
+t.color("blue")
+for _ in range(4):
+    t.forward(100)
+    t.left(90)
+\`\`\`
+
+Estrella:
+\`\`\`python
+import turtle
+t = turtle.Turtle()
+t.color("red")
+for _ in range(5):
+    t.forward(150)
+    t.right(144)
+\`\`\`
+
+Relleno:
+\`\`\`python
+import turtle
+t = turtle.Turtle()
+t.color("black", "gold")
+t.begin_fill()
+for _ in range(4):
+    t.forward(120)
+    t.left(90)
+t.end_fill()
+\`\`\`
+
+Arcos:
+\`\`\`python
+import turtle
+t = turtle.Turtle()
+t.circle(60)        # círculo
+t.circle(80, 180)   # medio círculo
+\`\`\`
+
+## Coordenadas centradas (opcional)
+\`\`\`python
+import turtle
+t = turtle.Turtle()
+W, H = 640, 480
+
+def goto_centered(x, y):
+    t.goto(W/2 + x, H/2 - y)
+
+t.penup(); goto_centered(0, 0); t.pendown()
+goto_centered(100, 0)
+goto_centered(100, 100)
+goto_centered(0, 100)
+goto_centered(0, 0)
+\`\`\`
+
+## Diferencias vs turtle estándar
+- Origen arriba-izquierda y Y positiva hacia abajo.
+- speed() no anima; done() no bloquea.
+- Subconjunto de funciones compatible con lo usado en clase.
+`
+
+
 
