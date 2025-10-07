@@ -533,44 +533,105 @@ function ensureEmbedModal() {
   let modal = document.getElementById("embed-modal");
   if (modal) return modal;
 
-  // Crear modal
   modal = document.createElement("div");
   modal.id = "embed-modal";
-  modal.style.display = "none";
   Object.assign(modal.style, {
+    display: "none",
     position: "fixed",
     inset: "0",
-    background: "rgba(0,0,0,0.45)",
+    // Fondo gris claro translúcido
+    background: "rgba(200,200,200,0.65)",
     zIndex: "10000",
     alignItems: "center",
     justifyContent: "center",
+    // Permite cerrar al hacer click fuera
+    cursor: "default",
   });
 
-  modal.innerHTML = `
-    <div style="background:#111; color:#eee; width:min(900px, 92%); border:1px solid #333; border-radius:8px; box-shadow:0 10px 40px rgba(0,0,0,0.5);">
-      <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid #333;">
-        <strong>Iframe Snippet</strong>
-        <button id="embed-close" style="background:#444; color:#fff; border:1px solid #666; border-radius:6px; padding:6px 10px; cursor:pointer;">Cerrar</button>
-      </div>
-      <div style="padding:12px;">
-        <p style="margin:0 0 8px 0; color:#bbb;">Pega este snippet en tu HTML:</p>
-        <textarea id="embed-textarea" style="width:100%; height:180px; background:#0b0b0b; color:#e6e6e6; border:1px solid #333; border-radius:6px; padding:10px; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:13px; line-height:1.4;"></textarea>
-        <div style="display:flex; gap:8px; margin-top:10px;">
-          <button id="embed-copy" style="background:#2a6; color:#fff; border:1px solid #185; border-radius:6px; padding:8px 12px; cursor:pointer;">Copiar</button>
-        </div>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(modal);
+  // Contenedor del diálogo en gris
+  const dialog = document.createElement("div");
+  Object.assign(dialog.style, {
+    background: "#f3f3f3",          // gris claro
+    color: "#222",                  // texto oscuro
+    width: "min(900px, 92%)",
+    border: "1px solid #cfcfcf",
+    borderRadius: "10px",
+    boxShadow: "0 10px 40px rgba(0,0,0,0.25)",
+    overflow: "hidden",
+    fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+  });
 
-  // Inicializar eventos
-  const closeBtn = modal.querySelector("#embed-close");
-  const copyBtn = modal.querySelector("#embed-copy");
-  const ta = modal.querySelector("#embed-textarea");
+  const header = document.createElement("div");
+  Object.assign(header.style, {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "12px 14px",
+    borderBottom: "1px solid #ddd",
+    background: "#e9e9e9",
+  });
+  const title = document.createElement("strong");
+  title.textContent = "Iframe Snippet";
+  header.appendChild(title);
 
-  closeBtn.addEventListener("click", () => { modal.style.display = "none"; });
-  modal.addEventListener("click", (e) => { if (e.target === modal) modal.style.display = "none"; });
-  copyBtn.addEventListener("click", async () => {
+  const closeBtn = document.createElement("button");
+  closeBtn.id = "embed-close";
+  closeBtn.textContent = "Cerrar";
+  Object.assign(closeBtn.style, {
+    background: "#ddd",
+    color: "#222",
+    border: "1px solid #bbb",
+    borderRadius: "8px",
+    padding: "6px 12px",
+    cursor: "pointer",
+  });
+  closeBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    modal.style.display = "none";
+  });
+  header.appendChild(closeBtn);
+
+  const body = document.createElement("div");
+  Object.assign(body.style, { padding: "12px" });
+
+  const p = document.createElement("p");
+  p.textContent = "Pega este snippet en tu HTML:";
+  p.style.margin = "0 0 8px 0";
+  p.style.color = "#333";
+
+  const ta = document.createElement("textarea");
+  ta.id = "embed-textarea";
+  Object.assign(ta.style, {
+    width: "100%",
+    height: "180px",
+    background: "#fff",           // blanco para mejor contraste
+    color: "#111",
+    border: "1px solid #cfcfcf",
+    borderRadius: "8px",
+    padding: "10px",
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+    fontSize: "13px",
+    lineHeight: "1.45",
+    boxSizing: "border-box",
+  });
+
+  const actions = document.createElement("div");
+  Object.assign(actions.style, { display: "flex", gap: "8px", marginTop: "10px" });
+
+  const copyBtn = document.createElement("button");
+  copyBtn.id = "embed-copy";
+  copyBtn.textContent = "Copiar";
+  Object.assign(copyBtn.style, {
+    background: "#2a6",
+    color: "#fff",
+    border: "1px solid #185",
+    borderRadius: "8px",
+    padding: "8px 12px",
+    cursor: "pointer",
+  });
+
+  copyBtn.addEventListener("click", async (e) => {
+    e.stopPropagation();
     try {
       ta.select();
       ta.setSelectionRange(0, ta.value.length);
@@ -580,6 +641,31 @@ function ensureEmbedModal() {
       setTimeout(() => (copyBtn.textContent = prev), 1200);
     } catch {
       window.prompt("Copia el snippet del iframe (Ctrl/Cmd+C):", ta.value);
+    }
+  });
+
+  actions.appendChild(copyBtn);
+  body.appendChild(p);
+  body.appendChild(ta);
+  body.appendChild(actions);
+
+  dialog.appendChild(header);
+  dialog.appendChild(body);
+  modal.appendChild(dialog);
+  document.body.appendChild(modal);
+
+  // Cerrar al hacer clic fuera del diálogo
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) modal.style.display = "none";
+  });
+
+  // Evitar que clics dentro del diálogo lo cierren
+  dialog.addEventListener("click", (e) => e.stopPropagation());
+
+  // Cerrar con tecla Esc
+  window.addEventListener("keydown", (e) => {
+    if (modal.style.display !== "none" && e.key === "Escape") {
+      modal.style.display = "none";
     }
   });
 
