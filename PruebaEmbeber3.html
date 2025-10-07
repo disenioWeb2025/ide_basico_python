@@ -24,7 +24,29 @@
 <body>
   <h2>Ejemplos embebidos (Resumen + Watchdog + Auto-resize)</h2>
 
- <iframe
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>🐍 IDE Python</title>
+    <link rel="stylesheet" href="./styles_ide.css" type="text/css">
+    <!-- CodeMirror para resaltado de sintaxis -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <!--<div class="header-content">-->
+         <!-- <h1>🐍 Editor Python</h1>-->
+        <!--</div>-->
+      </div>
+     <iframe
   src="https://disenioweb2025.github.io/ide_basico_python/?code=MQAgsgliAOBOEFsCmsawPYHNYEME5CQDsQAFATwBcALdIgKDgiMoAoAiAQoAl0AbHABoQCAK5EAJugCE7AJT16oAGo54OAEZ8kAZ3pF0CDbCQgAvCHYBRHZVESIOFknb0kEnBPMgAjAFZGeBZWADN2XgEQAG8DIxMAX2FKCGJdaPdPeJAcAEf0HXlFIA"
   title="Programa Python embebido"
   width="100%"
@@ -34,5 +56,9 @@
   allowfullscreen
   sandbox="allow-scripts allow-same-origin"
 ></iframe>
+
+    <script src="./script_ide.js"></script>
+  </body>
+</html>
 </body>
 </html>
