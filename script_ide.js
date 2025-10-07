@@ -528,13 +528,81 @@ function limpiarSalida() {
   clearOutput();
 }
 
-/* Generar iframe embebible con el código del usuario */
-function generarEmbed() {
-  const code = getUserCode();
-  const compressed = LZString.compressToEncodedURIComponent(code);
-  const url = `https://disenioweb2025.github.io/ide_basico_python/?code=${compressed}`;
+/* Asegura que el modal de embed exista; si no, lo crea e inicializa handlers */
+function ensureEmbedModal() {
+  let modal = document.getElementById("embed-modal");
+  if (modal) return modal;
 
-  const iframeSnippet = `<iframe
+  // Crear modal
+  modal = document.createElement("div");
+  modal.id = "embed-modal";
+  modal.style.display = "none";
+  Object.assign(modal.style, {
+    position: "fixed",
+    inset: "0",
+    background: "rgba(0,0,0,0.45)",
+    zIndex: "10000",
+    alignItems: "center",
+    justifyContent: "center",
+  });
+
+  modal.innerHTML = `
+    <div style="background:#111; color:#eee; width:min(900px, 92%); border:1px solid #333; border-radius:8px; box-shadow:0 10px 40px rgba(0,0,0,0.5);">
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid #333;">
+        <strong>Iframe Snippet</strong>
+        <button id="embed-close" style="background:#444; color:#fff; border:1px solid #666; border-radius:6px; padding:6px 10px; cursor:pointer;">Cerrar</button>
+      </div>
+      <div style="padding:12px;">
+        <p style="margin:0 0 8px 0; color:#bbb;">Pega este snippet en tu HTML:</p>
+        <textarea id="embed-textarea" style="width:100%; height:180px; background:#0b0b0b; color:#e6e6e6; border:1px solid #333; border-radius:6px; padding:10px; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:13px; line-height:1.4;"></textarea>
+        <div style="display:flex; gap:8px; margin-top:10px;">
+          <button id="embed-copy" style="background:#2a6; color:#fff; border:1px solid #185; border-radius:6px; padding:8px 12px; cursor:pointer;">Copiar</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  // Inicializar eventos
+  const closeBtn = modal.querySelector("#embed-close");
+  const copyBtn = modal.querySelector("#embed-copy");
+  const ta = modal.querySelector("#embed-textarea");
+
+  closeBtn.addEventListener("click", () => { modal.style.display = "none"; });
+  modal.addEventListener("click", (e) => { if (e.target === modal) modal.style.display = "none"; });
+  copyBtn.addEventListener("click", async () => {
+    try {
+      ta.select();
+      ta.setSelectionRange(0, ta.value.length);
+      await navigator.clipboard.writeText(ta.value);
+      const prev = copyBtn.textContent;
+      copyBtn.textContent = "¡Copiado!";
+      setTimeout(() => (copyBtn.textContent = prev), 1200);
+    } catch {
+      window.prompt("Copia el snippet del iframe (Ctrl/Cmd+C):", ta.value);
+    }
+  });
+
+  return modal;
+}
+
+/* Generar iframe embebible con el código del usuario (robusto) */
+function generarEmbed() {
+  try {
+    const code = getUserCode();
+    if (typeof code !== "string") {
+      alert("No hay código para embeber.");
+      return;
+    }
+    if (typeof LZString === "undefined") {
+      alert("Falta LZString. Incluí el script de lz-string en el HTML.");
+      return;
+    }
+
+    const compressed = LZString.compressToEncodedURIComponent(code);
+    const url = `https://disenioweb2025.github.io/ide_basico_python/?code=${compressed}`;
+
+    const iframeSnippet = `<iframe
   src="${url}"
   title="Programa Python embebido"
   width="100%"
@@ -545,38 +613,19 @@ function generarEmbed() {
   sandbox="allow-scripts allow-same-origin"
 ></iframe>`;
 
-  const modal = document.getElementById("embed-modal");
-  const ta = document.getElementById("embed-textarea");
-  ta.value = iframeSnippet;
-  modal.style.display = "flex";
-  ta.focus();
-  ta.select();
+    // Asegurar modal y textarea
+    const modal = ensureEmbedModal();
+    const ta = modal.querySelector("#embed-textarea");
+
+    ta.value = iframeSnippet;
+    modal.style.display = "flex";
+    ta.focus();
+    ta.select();
+  } catch (e) {
+    console.error("Error en generarEmbed:", e);
+    alert("Ocurrió un error generando el snippet. Mirá la consola para más detalles.");
+  }
 }
-
-/* Inicializar modal de embed */
-(function initEmbedModal() {
-  const modal = document.getElementById("embed-modal");
-  if (!modal) return;
-
-  const closeBtn = document.getElementById("embed-close");
-  const copyBtn = document.getElementById("embed-copy");
-  const ta = document.getElementById("embed-textarea");
-
-  closeBtn.addEventListener("click", () => { modal.style.display = "none"; });
-  modal.addEventListener("click", (e) => { if (e.target === modal) modal.style.display = "none"; });
-  copyBtn.addEventListener("click", async () => {
-    try {
-      ta.select();
-      ta.setSelectionRange(0, ta.value.length);
-      await navigator.clipboard.writeText(ta.value);
-      copyBtn.textContent = "¡Copiado!";
-      setTimeout(() => (copyBtn.textContent = "Copiar"), 1200);
-    } catch {
-      // Fallback
-      window.prompt("Copia el snippet del iframe (Ctrl/Cmd+C):", ta.value);
-    }
-  });
-})();
 
 /* Cargar código desde query ?code= */
 function maybeLoadFromQuery() {
@@ -595,7 +644,11 @@ function initUI() {
   if (selectPlantillas) selectPlantillas.addEventListener("change", cargarPlantilla);
   if (runBtn) runBtn.addEventListener("click", ejecutarCodigo);
   if (clearBtn) clearBtn.addEventListener("click", limpiarSalida);
-  if (embedBtn) embedBtn.addEventListener("click", generarEmbed);
+  if (embedBtn) {
+    embedBtn.addEventListener("click", generarEmbed);
+  } else {
+    console.warn("embed-btn no encontrado.");
+  }
 }
 
 /* Init */
