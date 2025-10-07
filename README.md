@@ -13,19 +13,20 @@ Este IDE corre Python en el navegador con Pyodide. Incluye:
 
 ## Tabla de contenidos
 
-1. [Interfaz y botones principales](#interfaz-y-botones-principales)
-2. [Escribir y ejecutar código](#escribir-y-ejecutar-código)
-3. [Turtle en este IDE](#turtle-en-este-ide)
-4. [Entrada de usuario (await input)](#entrada-de-usuario-await-input)
-5. [Embeber tu programa](#embeber-tu-programa)
-6. [Cargar código por URL (?code=)](#cargar-código-por-url-code)
-7. [Plantillas](#plantillas)
-8. [Errores comunes y soluciones](#errores-comunes-y-soluciones)
-9. [Diferencias clave vs. Python de escritorio](#diferencias-clave-vs-python-de-escritorio)
-10. [Ejemplos listos para copiar](#ejemplos-listos-para-copiar)
-11. [Accesibilidad y rendimiento](#accesibilidad-y-rendimiento)
-12. [Soporte](#soporte)
-13. [Licencia/Créditos](#13-licencia-creditos)
+
+1. [Interfaz y botones principales](#1-interfaz-y-botones-principales)
+2. [Escribir y ejecutar código](#2-escribir-y-ejecutar-código)
+3. [Turtle en este IDE](#3-turtle-en-este-ide)
+4. [Entrada de usuario (await input)](#4-entrada-de-usuario-await-input)
+5. [Embeber tu programa](#5-embeber-tu-programa)
+6. [Cargar código por URL (?code=)](#6-cargar-código-por-url-code)
+7. [Plantillas](#7-plantillas)
+8. [Errores comunes y soluciones](#8-errores-comunes-y-soluciones)
+9. [Diferencias clave vs. Python de escritorio](#9-diferencias-clave-vs-python-de-escritorio)
+10. [Ejemplos listos para copiar](#10-ejemplos-listos-para-copiar)
+11. [Accesibilidad y rendimiento](#11-accesibilidad-y-rendimiento)
+12. [Soporte y Contribuciones](#12-soporte-y-contribuciones)
+13. [Licencia / Créditos](#13-licencia--créditos)
 
 ---
 
