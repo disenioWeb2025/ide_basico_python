@@ -69,6 +69,7 @@
             <option value="input_y_casting">🔄 Input y Casting</option>
           </optgroup>
         </select>
+        <button id="btnManualTurtle" class="btn btn-manual" title="Ver manual de Turtle">📖 Manual Turtle</button>
         <span class="info-badge">💾 Auto-guardado activo</span>
       </div>
 
@@ -100,6 +101,14 @@
             <button id="submit-input" class="input-button">Enviar</button>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Modal Manual Turtle -->
+    <div id="modalManual" class="modal" style="display:none;">
+      <div class="modal-content">
+        <button id="cerrarManual" class="modal-close" title="Cerrar">✖</button>
+        <div id="manualContenido" class="markdown-body" style="max-height:70vh; overflow:auto;"></div>
       </div>
     </div>
 
