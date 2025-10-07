@@ -528,15 +528,36 @@ function limpiarSalida() {
   clearOutput();
 }
 
-/* Generar link embebible */
+/* Generar iframe embebible con el código del usuario */
 function generarEmbed() {
   const code = getUserCode();
   const compressed = LZString.compressToEncodedURIComponent(code);
-  const url = `${location.origin}${location.pathname}?code=${compressed}`;
+  const url = `https://disenioweb2025.github.io/ide_basico_python/?code=${compressed}`;
+  
+  // Generar snippet de iframe
+  const iframeSnippet = `<iframe
+  src="${url}"
+  title="Programa Python embebido"
+  width="100%"
+  height="600"
+  frameborder="0"
+  loading="lazy"
+  allowfullscreen
+  sandbox="allow-scripts allow-same-origin"
+></iframe>`;
+
+  // Copiar al portapapeles
   navigator.clipboard
-    .writeText(url)
-    .then(() => printToOutput("🔗 Enlace copiado al portapapeles."))
-    .catch(() => printToOutput("🔗 Enlace: " + url));
+    .writeText(iframeSnippet)
+    .then(() => {
+      printToOutput("✅ Código iframe copiado al portapapeles.");
+      printToOutput("Pégalo en tu HTML para embeber este programa:");
+      printToOutput(iframeSnippet);
+    })
+    .catch(() => {
+      printToOutput("📋 Copia este código iframe:");
+      printToOutput(iframeSnippet);
+    });
 }
 
 /* Cargar código desde query ?code= */
@@ -564,7 +585,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   try {
     initEditor();
     initUI();
-    // Mantenemos PLANTILLAS “limpia”, pero NO repoblamos el select para preservar los optgroups del HTML
+    // Mantenemos PLANTILLAS "limpia", pero NO repoblamos el select para preservar los optgroups del HTML
     sanitizePlantillas();
     // repoblarSelectPlantillas(); // <- Omitido intencionalmente (Opción A)
     maybeLoadFromQuery();
