@@ -25,6 +25,7 @@ Este IDE corre Python en el navegador con Pyodide. Incluye:
 10. [Ejemplos listos para copiar](#10-ejemplos-listos-para-copiar)
 11. [Accesibilidad y rendimiento](#11-accesibilidad-y-rendimiento)
 12. [Soporte](#12-soporte)
+13. [Licencia/Créditos](#13-licencia-creditos)
 
 ---
 
@@ -288,7 +289,7 @@ Para reportar problemas, sugerir mejoras o contribuir al proyecto:
 ---
 **Última actualización**: 2025-10-07
 
-## 📝 Licencia / Créditos
+## 13) Licencia / Créditos
 
 **IDE-BASICO-PYTHON** © 2025 por [Prof. Elizabeth Izquierdo](https://creativecommons.org) 
 está licenciado bajo [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).  
