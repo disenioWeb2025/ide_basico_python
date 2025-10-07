@@ -1,0 +1,1 @@
+# ide_basico_python
