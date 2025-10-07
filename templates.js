@@ -187,12 +187,9 @@ try:
     print("Lo pude convertir a entero. Doble:", n*2)
 except ValueError:
     print("No es entero. Longitud del texto:", len(texto))`,
-};
 
-// Log para verificar que se cargó correctamente
-console.log("✅ PLANTILLAS cargadas:", Object.keys(window.PLANTILLAS));
-
-"manual_turtle_md": `# Manual rápido de Turtle (IDE)
+  // ========== 📖 MANUAL ==========
+  "manual_turtle_md": `# Manual rápido de Turtle (IDE)
 Este IDE usa un canvas de 640×480. Origen (0,0) en la esquina superior izquierda. Centro en (320, 240). Eje Y crece hacia abajo.
 
 ## Crear tortuga y básico
@@ -302,4 +299,8 @@ goto_centered(0, 0)
 - Origen arriba-izquierda y Y positiva hacia abajo.
 - \`speed()\` no anima; \`done()\` no bloquea.
 - Subconjunto de funciones usado en el IDE.
-`,
+`
+};
+
+// Log para verificar que se cargó correctamente
+console.log("✅ PLANTILLAS cargadas:", Object.keys(window.PLANTILLAS));
