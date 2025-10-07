@@ -60,8 +60,7 @@ t.speed(0)
 t.color("blue")
 for i in range(4):
     t.forward(100)
-    t.left(90)
-turtle.done()`,
+    t.left(90)`,
 
   "turtle_flor": `import turtle
 t = turtle.Turtle()
@@ -71,8 +70,7 @@ for i in range(36):
     t.circle(60, 60)
     t.left(120)
     t.circle(60, 60)
-    t.left(10)
-turtle.done()`,
+    t.left(10)`,
 
   "turtle_estrella": `import turtle
 t = turtle.Turtle()
@@ -80,8 +78,7 @@ t.speed(0)
 t.color("red")
 for i in range(5):
     t.forward(150)
-    t.right(144)
-turtle.done()`,
+    t.right(144)`,
 
   "turtle_petalos_rellenos": `import turtle
 t = turtle.Turtle()
@@ -94,8 +91,7 @@ for i in range(18):
     t.left(110)
     t.circle(70, 70)
     t.end_fill()
-    t.left(20)
-turtle.done()`,
+    t.left(20)`,
 
   "turtle_spiro_giro": `import turtle
 t = turtle.Turtle()
@@ -103,8 +99,7 @@ t.speed(0)
 t.color("teal")
 for i in range(60):
     t.circle(80, 120)
-    t.left(125)
-turtle.done()`,
+    t.left(125)`,
 
   "turtle_cuadricula": `import turtle
 t = turtle.Turtle()
@@ -120,8 +115,7 @@ for y in range(-200, 201, 40):
     t.penup()
     t.goto(-200, y)
     t.pendown()
-    t.goto(200, y)
-turtle.done()`,
+    t.goto(200, y)`,
 
   // ========== 🎮 PROYECTOS Y JUEGOS ==========
   "juego_piedra_papel_tijera": `import random
@@ -191,6 +185,7 @@ except ValueError:
 
 // Log para verificar que se cargó correctamente
 console.log("✅ PLANTILLAS cargadas:", Object.keys(window.PLANTILLAS));
+
 
 
 
