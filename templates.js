@@ -187,7 +187,11 @@ try:
     print("Lo pude convertir a entero. Doble:", n*2)
 except ValueError:
     print("No es entero. Longitud del texto:", len(texto))`,
+};
 
 // Log para verificar que se cargó correctamente
 console.log("✅ PLANTILLAS cargadas:", Object.keys(window.PLANTILLAS));
+
+
+
 
