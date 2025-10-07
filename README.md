@@ -1,266 +1,295 @@
-# IDE Básico de Python (Pyodide) — README
+# Instrucciones de uso del IDE Python (versión Pyodide + Turtle + Embed)
 
-Este proyecto provee un IDE mínimo de **Python en el navegador** usando **Pyodide**.  
-Incluye:
-- Consola de salida y estado.
-- Carga de código por `?codigo=...` (para embeber ejemplos).
-- Señales al “padre” (la página que embebe) vía `postMessage` para saber si el IDE está listo, si empezó a ejecutar y si terminó OK o con error.
-- (Opcional) Turtle minimal con un `<canvas>` emergente.
-- Plantilla de “página padre” para **varios** ejemplos con **Resumen + Watchdog + Auto-resize**.
+Este IDE corre Python en el navegador con Pyodide. Incluye:
+
+- Ejecución de código Python sin instalar nada.
+- Entrada de usuario asíncrona con `await input()`.
+- Soporte de "turtle" adaptado a canvas (ventana flotante).
+- Botón "Embeber" que genera un iframe con tu código pre-cargado.
+
+**URL del IDE:** https://disenioweb2025.github.io/ide_basico_python/
 
 ---
 
-## 📁 Estructura mínima
+## Tabla de contenidos
 
+1. [Interfaz y botones principales](#1-interfaz-y-botones-principales)
+2. [Escribir y ejecutar código](#2-escribir-y-ejecutar-código)
+3. [Turtle en este IDE](#3-turtle-en-este-ide)
+4. [Entrada de usuario (await input)](#4-entrada-de-usuario-await-input)
+5. [Embeber tu programa](#5-embeber-tu-programa)
+6. [Cargar código por URL (?code=)](#6-cargar-código-por-url-code)
+7. [Plantillas](#7-plantillas)
+8. [Errores comunes y soluciones](#8-errores-comunes-y-soluciones)
+9. [Diferencias clave vs. Python de escritorio](#9-diferencias-clave-vs-python-de-escritorio)
+10. [Ejemplos listos para copiar](#10-ejemplos-listos-para-copiar)
+11. [Accesibilidad y rendimiento](#11-accesibilidad-y-rendimiento)
+12. [Soporte](#12-soporte)
+
+---
+
+## 1) Interfaz y botones principales
+
+- **Ejecutar ▶️**: corre el código del editor.
+- **Limpiar 🗑️**: limpia el panel de salida.
+- **Embeber 🔗**: abre un modal con el snippet de iframe para insertar tu programa en otra página.
+- **Estado** (barra superior): "Cargando Python…" al inicio; luego muestra la versión de Python.
+
+---
+
+## 2) Escribir y ejecutar código
+
+- Escribe en el editor (CodeMirror). Si no carga CodeMirror, verás un textarea; funciona igual.
+- Haz clic en **Ejecutar**. La salida aparece a la derecha.
+- Si tu programa usa `input()`, en este IDE debes usar `await input("mensaje: ")`.
+
+**Ejemplo:**
+
+```python
+nombre = await input("¿Cómo te llamas? ")
+print("Hola", nombre)
 ```
-ide_basico_python/
-├─ index.html          # El IDE (o tu archivo principal del IDE)
-├─ script.js           # Lógica del IDE (Pyodide + consola + postMessage)
-├─ PadreAuto.html      # (opcional) Página "padre" con múltiples iframes
-└─ ... (estilos/recursos opcionales)
+
+**Nota:**
+
+- `input()` tradicional bloqueante no funciona en el navegador. Siempre usa `await input()`.
+
+---
+
+## 3) Turtle en este IDE
+
+El IDE emula "turtle" dibujando en un canvas dentro de una ventana flotante.
+
+- **Coordenadas**: el origen está en la esquina superior izquierda del canvas.
+- **Posición inicial del "Turtle"**: centro del canvas (por defecto 640x480).
+- **Sentido**: `heading 0` hacia la derecha; `left(90)` gira hacia arriba.
+- **Métodos soportados** (principales):
+  - `forward(d)`, `backward(d)`, `left(ang)`, `right(ang)`, `setheading(ang)`
+  - `goto(x, y)`, `setpos(x, y)`, `home()`
+  - `pencolor(c)`, `fillcolor(c)`, `pensize(w)`, `color(pen, fill)`
+  - `begin_fill()`, `end_fill()`, `dot(size, color)`
+  - `circle(r, extent=None, steps=None)`
+  - `bgcolor(c)`
+  - **Modo objeto**: `t = turtle.Turtle()` también funciona.
+
+### Ejemplo simple:
+
+```python
+import turtle
+
+turtle.bgcolor("#fff")
+turtle.pencolor("red")
+turtle.pensize(3)
+
+turtle.forward(120)
+turtle.left(90)
+turtle.forward(80)
+turtle.dot(8, "blue")
 ```
 
-> Si el **padre** que embebe está en la **misma carpeta/sitio** que el IDE, podés usar rutas relativas `./?codigo=...` y evitar problemas de seguridad (mismo origen).
+### Rellenos:
+
+```python
+import turtle
+
+turtle.color("black", "gold")
+turtle.begin_fill()
+for _ in range(4):
+    turtle.forward(120)
+    turtle.left(90)
+turtle.end_fill()
+```
+
+### Círculo y arco:
+
+```python
+import turtle
+
+turtle.pencolor("#0a7")
+turtle.circle(60)         # círculo completo
+turtle.right(90)
+turtle.circle(60, 180)    # arco de 180°
+```
+
+### Consejos:
+
+- La ventana Turtle se crea automáticamente al dibujar.
+- Se cierra con el botón "Cerrar", clic fuera del cuadro o tecla **Esc**.
+- Para limpiar, vuelve a ejecutar tu programa (Turtle se resetea al inicio).
+
+### Limitaciones frente a Turtle estándar:
+
+- No hay animación "paso a paso" en tiempo real.
+- No están disponibles eventos de teclado/ratón.
+- El eje Y crece hacia abajo (propio de canvas HTML).
 
 ---
 
-## Requisitos del DOM del IDE
+## 4) Entrada de usuario (await input)
 
-Para que `script.js` funcione correctamente, tu HTML del IDE debe incluir:
+- Usa `await input("texto: ")` para pedir datos.
+- El prompt aparece debajo del panel de salida. Escribe y presiona "Enviar".
+- Si usas `input()` sin `await`, el IDE te avisará en la salida.
 
-- `#code-editor` → `<textarea>` (o contenedor editable) con el código.
-- `#output` → `<pre>` o `<div>` donde se imprime la salida.
-- `#status` → `<div>` para “Cargando / Listo / Error”.
-- (opcionales) Botones con IDs: `run-btn`, `copy-url-btn`, `clear-btn`.
-- (opcionales) UI de input con: `#input-section`, `#input-prompt`, `#input-field`, `#submit-input`.
+**Ejemplo:**
 
-El IDE envía eventos al padre con `postMessage`:
-- `ide:ready`
-- `run:start`
-- `run:complete` `{ success: Boolean, error: String|null }`
-- `ide:error`
+```python
+a = int(await input("Ingresa un número: "))
+b = int(await input("Otro número: "))
+print("Suma:", a + b)
+```
 
 ---
 
-## 🚀 Probar el IDE solo
+## 5) Embeber tu programa
 
-Abrí `index.html` (o el que uses como IDE) mediante GitHub Pages o un servidor local en HTTPS.  
-Deberías ver en `#status`: **“✅ Python listo”** al finalizar la carga de Pyodide.
+El botón "Embeber" genera un iframe para copiar y pegar en tu sitio.
 
----
+- **Qué hace**: comprime tu código y arma una URL con `?code=...` para que el IDE lo cargue automáticamente.
+- **Pasos**:
+  1. Escribe tu programa.
+  2. Clic en "🔗 Embeber".
+  3. En el modal gris, presiona "Copiar" y pega el snippet en tu HTML.
 
-## 🔗 Embebido simple (un ejemplo)
-
-En una página **en la misma carpeta** del IDE:
+**Ejemplo de iframe:**
 
 ```html
 <iframe
-  class="frame"
-  src="./?codigo=CODIGO_ENCODEADO_AQUI"
-  allow="clipboard-read; clipboard-write; fullscreen"
+  src="https://disenioweb2025.github.io/ide_basico_python/?code=...COMPRIMIDO..."
+  title="Programa Python embebido"
+  width="100%"
+  height="600"
+  frameborder="0"
   loading="lazy"
-  style="width:100%; height:560px; border:0; border-radius:10px;"
+  allowfullscreen
+  sandbox="allow-scripts allow-same-origin"
 ></iframe>
 ```
 
-### ¿De dónde saco `?codigo=`?
+### Consejos:
 
-1. **Desde el propio IDE**: usa el botón **“Copiar URL embebida”** y toma el valor posterior a `?codigo=`.
-2. **Manual (en tu página)**:
-   ```html
-   <script>
-     // Igual que el IDE: base64 de encodeURIComponent
-     const encodeCode = (txt) => btoa(encodeURIComponent(txt));
-     const url = `./?codigo=${encodeCode('print("Hola, IDE!")')}`;
-   </script>
-   ```
-
-> El IDE acepta `codigo` **URI-encoded** o **base64 de URI-encoded** (decodificación robusta).
+- Ajusta `height` según tu layout (por ejemplo, 480–800).
+- Si tu sitio usa Content Security Policy (CSP) estricta, habilita `scripts` y `same-origin` para el dominio de GitHub Pages del proyecto.
 
 ---
 
-## 🧰 Página padre con múltiples ejemplos  
-**Resumen + Watchdog + Auto-resize** (sin scroll vertical del iframe)
+## 6) Cargar código por URL (?code=)
 
-Usá la plantilla `PadreAuto.html` (incluida). Solo editás un **array** `EJEMPLOS` con objetos `{ title, code }`.  
-La página genera **N iframes** que:
-- muestran **estado** (listo/ejecutando/OK/error),
-- calculan un **resumen de salida**,
-- incluyen **watchdog** (timeout por ejecución),
-- **ajustan** automáticamente su **altura** (sin scroll del iframe).
+- El IDE detecta el parámetro `?code=` y descomprime el contenido para llenar el editor.
+- Compartiendo un enlace con `?code=...`, quien lo abra verá el editor con ese programa cargado.
+- El botón **Embeber** automatiza este proceso.
 
-### Extracto clave (cómo configurar)
+---
+
+## 7) Plantillas
+
+- Si el select de plantillas está visible, permite cargar ejemplos rápidos.
+- Selecciona una plantilla para llenar el editor y luego **Ejecutar**.
+- Podés ver y ejecutar todas las plantillas disponibles en: https://disenioweb2025.github.io/ide_basico_python/index_plantillas.html
+
+---
+
+## 8) Errores comunes y soluciones
+
+### No aparece "Turtle"
+
+- Ejecuta algún comando de turtle (por ejemplo, `turtle.dot(5)`).
+- Revisa la consola del navegador (F12) si no aparece.
+
+### Aviso "Recordá usar: await input(...)"
+
+- Cambia `input()` por `await input("...")`.
+
+### El botón Embeber no hace nada
+
+- Verifica que se cargue LZString:
 
 ```html
-<script>
-  // Tiempo máx. antes de marcar timeout
-  const TIMEOUT_MS = 15000;
-
-  // 1) Tus ejemplos aquí:
-  const EJEMPLOS = [
-    { title: 'Hola mundo', code: `print("Hola, mundo!")` },
-    { title: 'Error intencional', code: `1/0` },
-    // ...
-  ];
-
-  // 2) Codificador compatible con el IDE:
-  const encodeCode = (txt) => btoa(encodeURIComponent(txt));
-
-  // 3) Construcción automática
-  EJEMPLOS.forEach((ej, idx) => {
-    const id  = `ej${idx+1}`;
-    const src = `./?codigo=${encodeCode(ej.code)}&id=${encodeURIComponent(id)}`;
-    createEmbed({ title: ej.title, src });   // función ya definida en la plantilla
-  });
-</script>
+<script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
 ```
 
-> **Para cambiar los códigos**: editá el array `EJEMPLOS`, guardá y listo.  
-> **Para agregar más**: sumá nuevos objetos `{ title, code }` en el array.
+- Revisa la consola; el modal se inyecta automáticamente aunque no esté en el HTML.
+
+### Cerrar modal
+
+- Puedes cerrar con el botón **Cerrar**, clic fuera del cuadro o tecla **Esc**.
 
 ---
 
-## ▶️ Autorun (opcional)
+## 9) Diferencias clave vs. Python de escritorio
 
-Si querés que un iframe **se ejecute solo** al recibir `ide:ready`, podés, por ejemplo, hacerlo **solo para el primero**:
-
-```html
-<script>
-  window.addEventListener('message', (ev) => {
-    if (ev.origin !== location.origin) return;
-    const d = ev.data || {};
-    if (d.source !== 'IDE') return;
-
-    if (d.type === 'ide:ready') {
-      const frame0 = document.querySelectorAll('iframe.frame')[0];
-      if (frame0 && ev.source === frame0.contentWindow) {
-        frame0.contentWindow.ejecutarCodigo(); // dispara ▶️
-      }
-    }
-  });
-</script>
-```
-
-También podés marcar ejemplos con `autorun: true` en el array y decidirlo por índice/propiedad.
+- Corre en el navegador con Pyodide: sin acceso a archivos locales ni instalación de librerías nativas.
+- `turtle` es una emulación sobre canvas: cubre la API principal de dibujo, no todos los eventos/funciones del módulo oficial.
+- `input` tradicional bloqueante no existe; usa `await input()`.
 
 ---
 
-## 🛰️ API de eventos (padre ↔️ iframe)
+## 10) Ejemplos listos para copiar
 
-El **iframe del IDE** envía eventos al **padre** con `postMessage`:
+### Escalera:
 
-```js
-window.addEventListener('message', (ev) => {
-  if (ev.origin !== location.origin) return;  // seguridad: mismo origen
-  const data = ev.data || {};
-  if (data.source !== 'IDE') return;
-
-  if (data.type === 'ide:ready')   { /* IDE listo */ }
-  if (data.type === 'run:start')   { /* empezó ejecución */ }
-  if (data.type === 'run:complete') {
-    // data.success (bool), data.error (string|null)
-  }
-  if (data.type === 'ide:error')   { /* error inicializando Pyodide */ }
-});
+```python
+import turtle
+turtle.pencolor("#444")
+turtle.pensize(4)
+for _ in range(6):
+    turtle.forward(60)
+    turtle.left(90)
+    turtle.forward(30)
+    turtle.right(90)
 ```
 
-> Recomendación: mantené el chequeo `ev.origin === location.origin` para seguridad.
+### Flor simple:
+
+```python
+import turtle
+turtle.color("#b00", "#f88")
+turtle.begin_fill()
+for _ in range(36):
+    turtle.circle(60, 60)
+    turtle.left(120)
+    turtle.circle(60, 60)
+    turtle.left(10)
+turtle.end_fill()
+```
+
+### Interacción con entrada:
+
+```python
+import turtle
+lado = int(await input("Tamaño del lado: "))
+turtle.color("black", "#9cf")
+turtle.begin_fill()
+for _ in range(4):
+    turtle.forward(lado)
+    turtle.left(90)
+turtle.end_fill()
+```
 
 ---
 
-## 📏 Auto-resize del iframe
+## 11) Accesibilidad y rendimiento
 
-La plantilla del padre incluye un `autoResizeIframe(...)` que:
-- Mide el contenido interno del iframe (mismo origen).
-- Ajusta dinámicamente `style.height` para **evitar scroll del iframe**.
-- Reacciona a cambios de contenido (con `ResizeObserver` / fallback).
-
-Si alguna vez embebés **desde otro dominio**, no se podrá medir. En ese caso, se puede implementar un `postMessage('ide:resize', {height:...})` desde el hijo (no incluido por defecto).
+- En dispositivos modestos, muchos trazos pueden tardar más.
+- Mantén tamaño del canvas razonable (por defecto 640x480).
+- Evita bucles gigantes sin necesidad; disminuye `steps` en `circle()` si hace falta.
 
 ---
 
-## 🧯 Troubleshooting
+## 12) Soporte y Contribuciones
 
-- **Iframe en blanco**  
-  Usá **mismo origen** (`./?codigo=...`). Asegurate de que **el IDE carga por HTTPS**.  
-  Revisá consola del navegador por errores de red o CORS.
-
-- **No ejecuta solo**  
-  El padre solo detecta `run:start`/`run:complete` **cuando apretás ▶️** en el IDE (o si activás **autorun**).
-
-- **Pyodide no carga**  
-  Puede ser red/CDN o extensiones del navegador. Probá en incógnito.  
-  `script.js` usa `https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js` con logs.
-
-- **La altura no alcanza / aparece scroll**  
-  El **auto-resize** ya está en la plantilla. Si igual no alcanza:
-  - subí `max` (p. ej. `max: 3000`) o
-  - agregá `pad: 20` para margen.
-
-- **URL con `?codigo=` demasiado larga**  
-  Navegadores limitan el tamaño de URL (≈2k–8k). Para **snippets largos**:
-  - Guardá el `.py` en el repo y (si te interesa) agregamos soporte `?file=ruta/ej.py` para que el IDE lo cargue por `fetch` (mismo origen).
-  - O pegá el código dentro del IDE al abrir, sin usar `?codigo=`.
-
-- **Cache en GitHub Pages**  
-  Si cambiás `script.js` y no lo ves, agregá versión: `script.js?v=2`.
-
+**IDE**: https://disenioweb2025.github.io/ide_basico_python/
+Para reportar problemas, sugerir mejoras o contribuir al proyecto:
+- Revisar la documentación técnica en los comentarios del código
+- Testear en múltiples navegadores antes de reportar bugs
+- Si algo falla, abre la consola del navegador y comparte el error.
+- Proponer mejoras pedagógicas, etc. pueden escribir a profe.eliza17@gmail.com
+- **Contacto de la plataforma**: Creado con la ayuda de abacus.ai
 ---
-
-## 🧠 Notas técnicas
-
-- `input()` está redefinido usando `window.prompt` (simple y compatible).  
-  Si preferís una UI propia de input, ya hay helpers en `script.js` (`requestInput(...)`) y elementos opcionales en el DOM.
-- Salida redirigida: `sys.stdout` / `sys.stderr` a `#output` y a `console.log/error` (útil para debug).
-- **Turtle minimal**: si el código detecta `turtle.`, intenta mostrar un `<canvas>` emergente con botones (no bloquea si no existe).
-
----
-
-## 📎 Snippets útiles
-
-**Codificar código a `?codigo=...`:**
-```js
-const encodeCode = (txt) => btoa(encodeURIComponent(txt));
-const src = `./?codigo=${encodeCode('print("Hola!")')}`;
-```
-
-**Resumen de salida del iframe (mismo origen):**
-```js
-function snapshotSalida(iframe, lines = 12) {
-  const doc = iframe.contentDocument || iframe.contentWindow.document;
-  const out = doc && doc.getElementById('output');
-  return out ? (out.textContent || '').split('\n').slice(-lines).join('\n') : '';
-}
-```
-
-**Watchdog simple por ejecución:**
-```js
-let timer = null;
-window.addEventListener('message', (ev) => {
-  if (ev.origin !== location.origin) return;
-  const d = ev.data || {};
-  if (d.source !== 'IDE') return;
-
-  if (d.type === 'run:start') {
-    clearTimeout(timer);
-    timer = setTimeout(() => alert('⏱️ Se pasó de tiempo (¿bucle infinito?)'), 15000);
-  }
-  if (d.type === 'run:complete' || d.type === 'ide:error') {
-    clearTimeout(timer);
-  }
-});
-```
+**Última actualización**: 2025-10-07
 
 ## 📝 Licencia / Créditos
 
 **IDE-BASICO-PYTHON** © 2025 por [Prof. Elizabeth Izquierdo](https://creativecommons.org) 
 está licenciado bajo [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).  
 [![Licencia CC BY-NC-SA 4.0](https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
-
-## Soporte y Contribuciones
-
-Para reportar problemas, sugerir mejoras o contribuir al proyecto:
-- Revisar la documentación técnica en los comentarios del código
-- Testear en múltiples navegadores antes de reportar bugs
-- Proponer mejoras pedagógicas, etc. pueden escribir a profe.eliza17@gmail.com 
----
