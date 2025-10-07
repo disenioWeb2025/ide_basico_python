@@ -1,4 +1,4 @@
-/* script_ide.js - IDE Pyodide + input async + turtle canvas (versión corregida final, Opción A: NO repoblar select) */
+/* script_ide.js - IDE Pyodide + input async + turtle canvas + embed modal */
 
 let pyodide = null;
 let editor = null;
@@ -533,8 +533,7 @@ function generarEmbed() {
   const code = getUserCode();
   const compressed = LZString.compressToEncodedURIComponent(code);
   const url = `https://disenioweb2025.github.io/ide_basico_python/?code=${compressed}`;
-  
-  // Generar snippet de iframe
+
   const iframeSnippet = `<iframe
   src="${url}"
   title="Programa Python embebido"
@@ -546,19 +545,38 @@ function generarEmbed() {
   sandbox="allow-scripts allow-same-origin"
 ></iframe>`;
 
-  // Copiar al portapapeles
-  navigator.clipboard
-    .writeText(iframeSnippet)
-    .then(() => {
-      printToOutput("✅ Código iframe copiado al portapapeles.");
-      printToOutput("Pégalo en tu HTML para embeber este programa:");
-      printToOutput(iframeSnippet);
-    })
-    .catch(() => {
-      printToOutput("📋 Copia este código iframe:");
-      printToOutput(iframeSnippet);
-    });
+  const modal = document.getElementById("embed-modal");
+  const ta = document.getElementById("embed-textarea");
+  ta.value = iframeSnippet;
+  modal.style.display = "flex";
+  ta.focus();
+  ta.select();
 }
+
+/* Inicializar modal de embed */
+(function initEmbedModal() {
+  const modal = document.getElementById("embed-modal");
+  if (!modal) return;
+
+  const closeBtn = document.getElementById("embed-close");
+  const copyBtn = document.getElementById("embed-copy");
+  const ta = document.getElementById("embed-textarea");
+
+  closeBtn.addEventListener("click", () => { modal.style.display = "none"; });
+  modal.addEventListener("click", (e) => { if (e.target === modal) modal.style.display = "none"; });
+  copyBtn.addEventListener("click", async () => {
+    try {
+      ta.select();
+      ta.setSelectionRange(0, ta.value.length);
+      await navigator.clipboard.writeText(ta.value);
+      copyBtn.textContent = "¡Copiado!";
+      setTimeout(() => (copyBtn.textContent = "Copiar"), 1200);
+    } catch {
+      // Fallback
+      window.prompt("Copia el snippet del iframe (Ctrl/Cmd+C):", ta.value);
+    }
+  });
+})();
 
 /* Cargar código desde query ?code= */
 function maybeLoadFromQuery() {
