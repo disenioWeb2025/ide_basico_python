@@ -74,18 +74,34 @@ print(f"{a} * {b} = {a * b}")</textarea>
         </div>
       </div>
     </div>
+
     <!-- Canvas flotante para turtle -->
     <div class="canvas-overlay" id="canvas-overlay"></div>
     <div id="turtle-container">
       <button class="canvas-close-btn">×</button>
       <canvas id="turtle-canvas" width="800" height="600"></canvas>
     </div>
+
+    <!-- Modal para snippet de embed -->
+    <div id="embed-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:10000; align-items:center; justify-content:center;">
+      <div style="background:#111; color:#eee; width:min(900px, 92%); border:1px solid #333; border-radius:8px; box-shadow:0 10px 40px rgba(0,0,0,0.5);">
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid #333;">
+          <strong>Iframe Snippet</strong>
+          <button id="embed-close" style="background:#444; color:#fff; border:1px solid #666; border-radius:6px; padding:6px 10px; cursor:pointer;">Cerrar</button>
+        </div>
+        <div style="padding:12px;">
+          <p style="margin:0 0 8px 0; color:#bbb;">Pega este snippet en tu HTML:</p>
+          <textarea id="embed-textarea" style="width:100%; height:180px; background:#0b0b0b; color:#e6e6e6; border:1px solid #333; border-radius:6px; padding:10px; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:13px; line-height:1.4;"></textarea>
+          <div style="display:flex; gap:8px; margin-top:10px;">
+            <button id="embed-copy" style="background:#2a6; color:#fff; border:1px solid #185; border-radius:6px; padding:8px 12px; cursor:pointer;">Copiar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script src="./script_ide.js"></script>
   </body>
 </html>
-
-
-
 
 
 
