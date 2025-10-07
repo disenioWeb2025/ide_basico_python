@@ -68,19 +68,77 @@ function sanitizePlantillas() {
 function repoblarSelectPlantillas() {
   const sel = document.getElementById("plantillas-select");
   if (!sel || !window.PLANTILLAS) return;
-  // limpiar
+
+  // Limpiar
   while (sel.firstChild) sel.removeChild(sel.firstChild);
-  // opción vacía
+
+  // Opción vacía
   const optEmpty = document.createElement("option");
   optEmpty.value = "";
-  optEmpty.textContent = "Seleccioná una plantilla…";
+  optEmpty.textContent = "— Seleccioná un ejemplo —";
   sel.appendChild(optEmpty);
-  // agregar desde PLANTILLAS
-  for (const key of Object.keys(window.PLANTILLAS)) {
-    const opt = document.createElement("option");
-    opt.value = key;
-    opt.textContent = key;
-    sel.appendChild(opt);
+
+  // Definir categorías y el orden deseado
+  const categorias = [
+    {
+      label: "🎯 Básicos",
+      items: [
+        ["hola_mundo", "👋 Hola Mundo"],
+        ["saludo_con_input", "⌨️ Saludo con Input"],
+        ["suma_dos_numeros", "➕ Suma de Dos Números"],
+        ["promedio_tres", "📊 Promedio de Tres Números"],
+      ],
+    },
+    {
+      label: "🔀 Control de Flujo",
+      items: [
+        ["condicional_basico", "🔀 Condicional Básico"],
+        ["adivina_numero", "🎲 Adivina el Número"],
+        ["bucles_basico", "🔁 Bucles Básico"],
+        ["tabla_multiplicar", "✖️ Tabla de Multiplicar"],
+        ["while_acumulador", "🔄 While Acumulador"],
+      ],
+    },
+    {
+      label: "🐢 Gráficos con Turtle",
+      items: [
+        ["turtle_basico", "🟦 Cuadrado Básico"],
+        ["turtle_flor", "🌸 Flor con Pétalos"],
+        ["turtle_estrella", "⭐ Estrella"],
+        ["turtle_petalos_rellenos", "🌺 Pétalos Rellenos"],
+        ["turtle_spiro_giro", "🌀 Espiral Giro"],
+        ["turtle_cuadricula", "📐 Cuadrícula"],
+      ],
+    },
+    {
+      label: "🎮 Proyectos y Juegos",
+      items: [
+        ["juego_piedra_papel_tijera", "✊✋✌️ Piedra Papel Tijera"],
+        ["funcion_area_circulo", "⭕ Área de Círculo"],
+        ["fizzbuzz", "🎯 FizzBuzz"],
+        ["random_dados", "🎲 Tirar Dados"],
+        ["menu_simple", "📋 Menú Simple"],
+        ["input_y_casting", "🔄 Input y Casting"],
+      ],
+    },
+  ];
+
+  // Renderizar optgroups según lo que exista realmente en PLANTILLAS
+  for (const cat of categorias) {
+    const group = document.createElement("optgroup");
+    group.label = cat.label;
+
+    let added = 0;
+    for (const [key, label] of cat.items) {
+      if (key in window.PLANTILLAS) {
+        const opt = document.createElement("option");
+        opt.value = key;
+        opt.textContent = label;
+        group.appendChild(opt);
+        added++;
+      }
+    }
+    if (added > 0) sel.appendChild(group);
   }
 }
 
