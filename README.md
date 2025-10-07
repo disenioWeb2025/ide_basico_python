@@ -274,7 +274,7 @@ turtle.end_fill()
 
 - En dispositivos modestos, muchos trazos pueden tardar más.
 - Mantén tamaño del canvas razonable (por defecto 640x480).
-- Evita bucles gigantes sin necesidad; disminuye `steps` en `circle()` si hace falta.
+- Evita bucles gigantes sin necesidad; disminuye `steps` en `circle()` si hace falta.xx
 
 ---
 
@@ -288,10 +288,10 @@ Para reportar problemas, sugerir mejoras o contribuir al proyecto:
 - Proponer mejoras pedagógicas, etc. pueden escribir a profe.eliza17@gmail.com
 - **Contacto de la plataforma**: Creado con la ayuda de abacus.ai
 ---
-**Última actualización**: 2025-10-07
 
 ## 13) Licencia / Créditos
 
 **IDE-BASICO-PYTHON** © 2025 por [Prof. Elizabeth Izquierdo](https://creativecommons.org) 
 está licenciado bajo [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).  
 [![Licencia CC BY-NC-SA 4.0](https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+**Última actualización**: 2025-10-07
