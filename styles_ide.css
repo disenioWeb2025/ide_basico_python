@@ -1,0 +1,528 @@
+/* ======== RESETEO ======== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ======== ESTILO GENERAL ======== */
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+/* ======== HEADER ======== */
+.header {
+  background: linear-gradient(135deg, #2196f3, #21cbf3);
+  color: white;
+  padding: 15px;
+  text-align: center;
+}
+
+.header h1 {
+  font-size: 1.8em;
+  margin: 0;
+}
+
+/* ======== BOTONES SUPERIORES ======== */
+.control-buttons {
+  display: flex;
+  gap: 10px;
+  padding: 15px 20px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.btn-ejecutar {
+  background: #28a745;
+  color: white;
+}
+
+.btn-ejecutar:hover {
+  background: #218838;
+}
+
+.btn-ejecutar:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.btn-limpiar {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-limpiar:hover {
+  background: #5a6268;
+}
+
+.btn-embeber {
+  background: #17a2b8;
+  color: white;
+}
+
+.btn-embeber:hover {
+  background: #138496;
+}
+
+/* ======== PANELES PRINCIPALES ======== */
+.main-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  padding: 20px;
+  min-height: 500px;
+}
+
+/* ======== PANELES: EDITOR Y SALIDA ======== */
+.editor-panel,
+.output-panel {
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 15px;
+  border: 2px solid #e9ecef;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.editor-panel h3,
+.output-panel h3 {
+  color: #495057;
+  margin-bottom: 15px;
+  font-size: 1.1em;
+}
+
+/* ======== EDITOR DE CÓDIGO ======== */
+.code-editor {
+  width: 100%;
+  height: 400px;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  font-family: "Courier New", monospace;
+  font-size: 14px;
+  padding: 15px;
+  resize: none;
+  background: #1e1e1e;
+  color: #ffffff;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+
+.code-editor:focus {
+  outline: none;
+  border-color: #2196f3;
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+}
+
+/* ======== SALIDA DEL PROGRAMA ======== */
+.output-content {
+  background: #1e1e1e;
+  color: #00ff00;
+  font-family: "Courier New", monospace;
+  padding: 15px;
+  height: 400px;
+  border-radius: 8px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  font-size: 13px;
+  line-height: 1.4;
+  box-sizing: border-box;
+  border: 1px solid #ced4da;
+}
+
+/* ======== ESTADOS DE CARGA ======== */
+.status-top {
+  padding: 8px 20px;
+  text-align: center;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.status-top.loading {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-top.ready {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-top.error {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+/* ======== SECCIÓN DE INPUT ======== */
+.input-section {
+  margin-top: 15px;
+  padding: 10px;
+  background: #2a2a2a;
+  border-radius: 8px;
+  border: 1px solid #444;
+}
+
+.input-section.input-hidden {
+  display: none;
+}
+
+.input-prompt {
+  color: #ffffff;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.input-section input {
+  width: calc(100% - 80px);
+  padding: 8px 12px;
+  border: 1px solid #555;
+  border-radius: 4px;
+  background: #333;
+  color: #fff;
+  font-family: "Courier New", monospace;
+}
+
+.input-button {
+  width: 70px;
+  padding: 8px 12px;
+  margin-left: 8px;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.input-button:hover {
+  background: #218838;
+}
+
+/* ======== CANVAS TURTLE ======== */
+.canvas-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 9998;
+  display: none;
+}
+
+#turtle-container {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9999;
+  background: white;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  display: none;
+}
+
+.canvas-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  background: #f44336;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.canvas-close-btn:hover {
+  background: #d32f2f;
+}
+
+#turtle-canvas {
+  border: 2px solid #333;
+  border-radius: 8px;
+  background: white;
+}
+
+/* ======== RESPONSIVE ======== */
+@media (max-width: 768px) {
+  .main-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ----------- CORRECCIÓN DE ALINEACIÓN VERTICAL ----------- */
+
+.main-content {
+  display: flex;
+  align-items: stretch; /* fuerza que ambos paneles tengan mismo alto */
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px;
+}
+
+.editor-panel,
+.output-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #f8f9fa;
+  border-radius: 10px;
+  border: 2px solid #e9ecef;
+  padding: 15px;
+  min-height: 450px; /* asegura altura mínima uniforme */
+  height: 100%;
+}
+
+/* Para que CodeMirror o el textarea llenen el panel */
+.CodeMirror,
+.code-editor {
+  flex: 1;
+  height: 100% !important;
+  border-radius: 8px;
+  font-family: "Courier New", monospace;
+  font-size: 14px;
+  background: #1e1e1e;
+  color: #ffffff;
+  border: 1px solid #ced4da;
+  line-height: 1.5;
+}
+
+/* Panel de salida con la misma altura */
+.output-content {
+  flex: 1;
+  background: #1e1e1e;
+  color: #00ff00;
+  font-family: "Courier New", monospace;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #ced4da;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  font-size: 13px;
+  line-height: 1.4;
+  box-sizing: border-box;
+}
+
+/* Títulos iguales */
+.editor-panel h3,
+.output-panel h3 {
+  margin-bottom: 10px;
+  color: #495057;
+}
+
+/* ======= ARREGLO DE ALINEACIÓN FINAL ======= */
+
+.main-content {
+  display: flex;
+  align-items: stretch;       /* estira ambos paneles igual */
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px;
+}
+
+.editor-panel, 
+.output-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #f8f9fa;
+  border-radius: 10px;
+  border: 2px solid #e9ecef;
+  padding: 15px;
+  height: auto;
+  min-height: 460px;          /* define una altura base uniforme */
+}
+
+/* TITULOS */
+.editor-panel h3,
+.output-panel h3 {
+  color: #495057;
+  margin-bottom: 10px;
+  font-size: 1.1em;
+}
+
+/* ======= CODIGO (CodeMirror) ======= */
+.CodeMirror, 
+.code-editor {
+  flex: 1;
+  height: 100% !important;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  background: #1e1e1e;
+  color: #fff;
+  font-family: "Courier New", monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+
+/* ======= SALIDA DEL PROGRAMA ======= */
+.output-content {
+  flex: 1;
+  background: #1e1e1e;
+  color: #00ff00;
+  font-family: "Courier New", monospace;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #ced4da;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  font-size: 13px;
+  line-height: 1.4;
+  box-sizing: border-box;
+  height: 100%;
+}
+
+/* ========= Modal de Embed ========= */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 10000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content {
+  background-color: #fff;
+  padding: 25px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 600px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+.modal-close {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 28px;
+  font-weight: bold;
+  color: #999;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.modal-close:hover {
+  color: #333;
+}
+
+.modal-content h3 {
+  margin-top: 0;
+  color: #333;
+}
+
+.modal-content label {
+  display: block;
+  margin: 15px 0 5px;
+  font-weight: bold;
+  color: #555;
+}
+
+.modal-content select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.modal-content textarea {
+  width: 100%;
+  height: 150px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  resize: vertical;
+  margin-top: 10px;
+}
+
+.btn-primary, .btn-secondary {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #45a049;
+}
+
+.btn-secondary {
+  background-color: #2196F3;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: #0b7dda;
+}
+
+/* ========= Selector de plantillas ========= */
+#plantillas-select {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+#plantillas-select:hover {
+  border-color: #4CAF50;
+}
+
+#plantillas-select:focus {
+  outline: none;
+  border-color: #4CAF50;
+  box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .main-content {
+    flex-direction: column;
+  }
+}
+

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🐍 IDE Python - Con Plantillas</title>
+
+    <link rel="stylesheet" href="./styles_ide.css" type="text/css">
+
+    <!-- CodeMirror para resaltado de sintaxis -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
+
+    <!-- LZString para compartir/embeber código -->
+    <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
+
+    <style>
+      .header-with-title { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 15px 20px; color: white; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+      .header-with-title h1 { margin: 0; font-size: 24px; display: flex; align-items: center; gap: 10px; }
+      .header-with-title p { margin: 5px 0 0 0; font-size: 14px; opacity: 0.9; }
+      .plantillas-section { background: #f8f9fa; padding: 15px 20px; border-bottom: 2px solid #e0e0e0; display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
+      .plantillas-section label { font-weight: bold; color: #333; font-size: 14px; }
+      #plantillas-select { flex: 1; min-width: 200px; padding: 10px 15px; border: 2px solid #ddd; border-radius: 6px; background-color: white; cursor: pointer; font-size: 14px; transition: all 0.3s; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+      #plantillas-select:hover { border-color: #667eea; box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2); }
+      #plantillas-select:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+      .info-badge { background: #667eea; color: white; padding: 8px 15px; border-radius: 20px; font-size: 13px; font-weight: 500; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header-with-title">
+        <h1>🐍 IDE Python Interactivo</h1>
+        <p>Aprendé programación con ejemplos listos para usar</p>
+      </div>
+
+      <div class="plantillas-section">
+        <label for="plantillas-select">📚 Elegí una plantilla:</label>
+        <select id="plantillas-select">
+          <option value="">-- Seleccioná un ejemplo --</option>
+          <optgroup label="🎯 Básicos">
+            <option value="hola_mundo">👋 Hola Mundo</option>
+            <option value="saludo_con_input">⌨️ Saludo con Input</option>
+            <option value="suma_dos_numeros">➕ Suma de Dos Números</option>
+            <option value="promedio_tres">📊 Promedio de Tres Números</option>
+          </optgroup>
+          <optgroup label="🔀 Control de Flujo">
+            <option value="condicional_basico">🔀 Condicional Básico</option>
+            <option value="adivina_numero">🎲 Adivina el Número</option>
+            <option value="bucles_basico">🔁 Bucles Básico</option>
+            <option value="tabla_multiplicar">✖️ Tabla de Multiplicar</option>
+            <option value="while_acumulador">🔄 While Acumulador</option>
+          </optgroup>
+          <optgroup label="🐢 Gráficos con Turtle">
+            <option value="turtle_basico">🟦 Cuadrado Básico</option>
+            <option value="turtle_flor">🌸 Flor con Pétalos</option>
+            <option value="turtle_estrella">⭐ Estrella</option>
+            <option value="turtle_petalos_rellenos">🌺 Pétalos Rellenos</option>
+            <option value="turtle_spiro_giro">🌀 Espiral Giro</option>
+            <option value="turtle_cuadricula">📐 Cuadrícula</option>
+          </optgroup>
+          <optgroup label="🎮 Proyectos y Juegos">
+            <option value="juego_piedra_papel_tijera">✊✋✌️ Piedra Papel Tijera</option>
+            <option value="funcion_area_circulo">⭕ Área de Círculo</option>
+            <option value="fizzbuzz">🎯 FizzBuzz</option>
+            <option value="random_dados">🎲 Tirar Dados</option>
+            <option value="menu_simple">📋 Menú Simple</option>
+            <option value="input_y_casting">🔄 Input y Casting</option>
+          </optgroup>
+        </select>
+        <span class="info-badge">💾 Auto-guardado activo</span>
+      </div>
+
+      <div id="status" class="status-top">Cargando Python...</div>
+
+      <div class="control-buttons">
+        <button id="run-btn" class="btn btn-ejecutar">▶️ Ejecutar</button>
+        <button id="clear-btn" class="btn btn-limpiar">🗑️ Limpiar</button>
+        <button id="embed-btn" class="btn btn-embeber">🔗 Embeber</button>
+      </div>
+
+      <div class="main-content">
+        <div class="editor-panel">
+          <h3>✏️ Editor de Código</h3>
+          <textarea id="code-editor" class="code-editor" placeholder="Escribe tu código Python aquí o elegí una plantilla...">print("Hola mundo")</textarea>
+        </div>
+
+        <div class="output-panel">
+          <h3>🖥️ Salida del Programa</h3>
+          <div id="output" class="output-content">
+            Python 3.11 | Pyodide
+            🐢 Turtle graphics disponible
+            Ejecuta tu código para ver la salida...
+          </div>
+
+          <div id="input-section" class="input-section input-hidden">
+            <div class="input-prompt" id="input-prompt">Introduce un valor:</div>
+            <input type="text" id="input-field" placeholder="Escribe aquí tu respuesta..." />
+            <button id="submit-input" class="input-button">Enviar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scripts: orden correcto -->
+    <script src="./templates.js"></script>
+    <script src="./script_ide.js"></script>
+  </body>
+</html>

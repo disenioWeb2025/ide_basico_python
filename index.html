@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>🐍 IDE Python</title>
+    <link rel="stylesheet" href="./styles_ide.css" type="text/css">
+    <!-- CodeMirror para resaltado de sintaxis -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <!--<div class="header-content">-->
+         <!-- <h1>🐍 Editor Python</h1>-->
+        <!--</div>-->
+      </div>
+      <div id="status" class="status-top">Cargando Python...</div>
+      <div class="control-buttons">
+        <button id="run-btn" class="btn btn-ejecutar">
+          ▶️ Ejecutar
+        </button>
+        <button id="clear-btn" class="btn btn-limpiar">
+          🗑️ Limpiar
+        </button>
+        <button id="embed-btn" class="btn btn-embeber">
+          🔗 Embeber
+        </button>
+      </div>
+      <div class="main-content">
+        <div class="editor-panel">
+          <h3>✏️ Editor de Código</h3>
+          <textarea
+            id="code-editor"
+            class="code-editor"
+            placeholder="Escribe tu código Python aquí..."
+          >
+# Mi primer programa en Python
+print("¡Hola, mundo!")
+
+# Variables
+nombre = "Estudiante"
+edad = 15
+print(f"Hola {nombre}, tienes {edad} años")
+
+# Operaciones matemáticas
+a = 10
+b = 5
+print(f"{a} + {b} = {a + b}")
+print(f"{a} * {b} = {a * b}")</textarea>
+        </div>
+        <div class="output-panel">
+          <h3>🖥️ Salida del Programa</h3>
+          <div id="output" class="output-content">
+            Python 3.10 | Pyodide
+            Ejecuta tu código para ver la salida...
+          </div>
+          <div id="input-section" class="input-section input-hidden">
+            <div class="input-prompt" id="input-prompt">
+              Introduce un valor:
+            </div>
+            <input
+              type="text"
+              id="input-field"
+              placeholder="Escribe aquí tu respuesta..."
+            />
+            <button id="submit-input" class="input-button">Enviar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Canvas flotante para turtle -->
+    <div class="canvas-overlay" id="canvas-overlay"></div>
+    <div id="turtle-container">
+      <button class="canvas-close-btn">×</button>
+      <canvas id="turtle-canvas" width="800" height="600"></canvas>
+    </div>
+    <script src="./script_ide.js"></script>
+  </body>
+</html>
+
+
+
+
+
+
+
+
+
+
+

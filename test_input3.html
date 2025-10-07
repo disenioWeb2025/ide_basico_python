@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Test Input Pyodide - Await Wrapper</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 20px; }
+    #output { background:#f4f4f4; padding:12px; border-radius:6px; min-height:160px; white-space:pre-wrap; font-family: monospace; }
+    #input-section { margin: 14px 0; padding: 12px; background: #fff3cd; border: 2px solid #ffc107; border-radius: 6px; }
+    #input-section.input-hidden { display: none; }
+    #input-field { width: 70%; padding: 8px; font-size: 16px; }
+    button { padding: 8px 14px; margin-right: 8px; }
+    .code-box { background:#2d2d2d; color:#f8f8f2; padding:10px; border-radius:6px; margin:8px 0; font-family: monospace; white-space: pre; }
+  </style>
+</head>
+<body>
+  <h1>🧪 Test Input Pyodide (Await Wrapper)</h1>
+
+  <div id="input-section" class="input-hidden">
+    <strong id="input-prompt">Introduce un valor:</strong><br/>
+    <input type="text" id="input-field"/>
+    <button id="submit-input">Enviar</button>
+  </div>
+
+  <button id="test1">Test 1: Nombre simple</button>
+  <button id="test2">Test 2: Dos inputs</button>
+  <button id="test3">Test 3: Adivina número</button>
+  <button id="clear">Limpiar</button>
+
+  <h3>Salida:</h3>
+  <div id="output">Cargando Python...</div>
+
+  <h3>Códigos de prueba (recordá usar await input):</h3>
+  <div class="code-box">Test 1:
+nombre = await input("¿Cómo te llamás? ")
+print("Hola", nombre)</div>
+
+  <div class="code-box">Test 2:
+a = await input("Primer valor: ")
+b = await input("Segundo valor: ")
+print(f"Ingresaste: {a} y {b}")</div>
+
+  <div class="code-box">Test 3:
+import random
+numero = random.randint(1, 10)
+print("Pensé un número entre 1 y 10")
+intento = int(await input("Adiviná: "))
+if intento == numero:
+    print("¡Acertaste!")
+else:
+    print(f"No, era {numero}")</div>
+
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+  <script>
+    let pyodide;
+    let inputPending = false;
+    let inputBuffer = null;
+
+    function appendOutput(text) {
+      const out = document.getElementById("output");
+      out.textContent += text + "\n";
+      out.scrollTop = out.scrollHeight;
+    }
+    function clearOutput() {
+      document.getElementById("output").textContent = "";
+    }
+    function showInputUI(promptText) {
+      const section = document.getElementById("input-section");
+      const promptEl = document.getElementById("input-prompt");
+      const field = document.getElementById("input-field");
+      promptEl.textContent = promptText || "Introduce un valor:";
+      field.value = "";
+      section.classList.remove("input-hidden");
+      field.focus();
+    }
+    function hideInputUI() {
+      document.getElementById("input-section").classList.add("input-hidden");
+    }
+    function submitInput() {
+      const field = document.getElementById("input-field");
+      inputBuffer = String(field.value);
+      inputPending = false;
+      hideInputUI();
+    }
+    async function waitForInput(promptText) {
+      inputPending = true;
+      inputBuffer = null;
+      showInputUI(String(promptText ?? ""));
+      while (inputPending) {
+        await new Promise(r => setTimeout(r, 40));
+      }
+      return String(inputBuffer ?? "");
+    }
+    async function inputSyncBridge(promptText) {
+      return await waitForInput(promptText);
+    }
+    window.inputSyncBridge = inputSyncBridge;
+
+    async function init() {
+      try {
+        pyodide = await loadPyodide({
+          stdout: (t) => appendOutput(t),
+          stderr: (t) => appendOutput("❌ " + t),
+        });
+
+        // input async
+        await pyodide.runPythonAsync(`
+import builtins
+from js import inputSyncBridge
+
+async def input(prompt=""):
+    val = await inputSyncBridge(str(prompt))
+    return str(val)
+
+builtins.input = input
+`);
+        appendOutput("✅ Python listo. Probá los tests.");
+      } catch (err) {
+        appendOutput("❌ Error init: " + err.message);
+      }
+    }
+
+    // Two-step without asyncio.run: define async func, then await it
+    async function runCodeWithAwaitWrapper(userCode) {
+      // Definir la función async en un primer eval
+      const indented = userCode.split("\n").map(line => "    " + line).join("\n");
+      const defineFn = `
+async def __user_main__():
+${indented}
+`;
+      await pyodide.runPythonAsync(defineFn);
+
+      // Await explícito de la coroutine en un segundo eval
+      await pyodide.runPythonAsync(`await __user_main__()`);
+    }
+
+    async function runCode(code) {
+      clearOutput();
+      inputPending = false;
+      inputBuffer = null;
+      hideInputUI();
+      try {
+        await runCodeWithAwaitWrapper(code);
+        appendOutput("\n✅ Completado");
+      } catch (err) {
+        appendOutput("\n❌ Error: " + err.message);
+      }
+    }
+
+    document.getElementById("submit-input").addEventListener("click", submitInput);
+    document.getElementById("input-field").addEventListener("keypress", (e) => {
+      if (e.key === "Enter") submitInput();
+    });
+
+    // Tests (usan await input)
+    document.getElementById("test1").addEventListener("click", () => {
+      runCode(`nombre = await input("¿Cómo te llamás? ")
+print("Hola", nombre)`);
+    });
+
+    document.getElementById("test2").addEventListener("click", () => {
+      runCode(`a = await input("Primer valor: ")
+b = await input("Segundo valor: ")
+print(f"Ingresaste: {a} y {b}")`);
+    });
+
+    document.getElementById("test3").addEventListener("click", () => {
+      runCode(`import random
+numero = random.randint(1, 10)
+print("Pensé un número entre 1 y 10")
+intento = int(await input("Adiviná: "))
+if intento == numero:
+    print("¡Acertaste!")
+else:
+    print(f"No, era {numero}")`);
+    });
+
+    document.getElementById("clear").addEventListener("click", clearOutput);
+
+    init();
+  </script>
+</body>
+</html>

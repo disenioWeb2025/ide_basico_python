@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Padre: múltiples IDEs (Resumen + Watchdog + Auto-resize)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { --fg:#222; --muted:#666; --ok:#2e7d32; --run:#e67e22; --err:#c62828; --box:#f6f8fa; --bd:#e5e7eb; }
+    body { margin:0; font-family:system-ui, sans-serif; color:var(--fg); padding:1rem; }
+    h2 { margin:.25rem 0 1rem; }
+    .embed-block { border:1px solid var(--bd); border-radius:12px; padding:1rem; margin:1rem 0; background:#fff; }
+    .title { margin:0 0 .5rem; font-size:1.05rem; }
+    .estado { display:flex; align-items:center; gap:.5rem; font-weight:600; margin:.25rem 0 .75rem; }
+    .dot { width:12px; height:12px; border-radius:50%; background:#999; display:inline-block; box-shadow:0 0 0 2px rgba(0,0,0,.05) inset; }
+    .dot.running { background:var(--run); }
+    .dot.ok { background:var(--ok); }
+    .dot.error { background:var(--err); }
+    .label { color:var(--muted); font-weight:600; }
+    .frame { width:100%; border:0; border-radius:10px; display:block; } /* sin height fija: la pone JS */
+    .mini { margin-top:.75rem; background:var(--box); border:1px solid var(--bd); border-radius:8px; padding:.75rem;
+            font:12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space:pre-wrap; max-height:180px; overflow:auto; }
+  </style>
+</head>
+<body>
+  <h2>Ejemplos embebidos (Resumen + Watchdog + Auto-resize)</h2>
+
+  <div id="embeds"></div>
+
+  <script>
+    // ===== 1) Configuración =====
+    const TIMEOUT_MS = 15000; // tiempo máximo por ejecución antes de marcar timeout
+
+    // Lista de ejemplos: agregá/quitá libremente
+    const EJEMPLOS = [
+      {
+        title: 'Hola mundo',
+        code: `print("Hola, mundo!")
+for i in range(3):
+    print("i =", i)`
+      },
+      {
+        title: 'Turtle rápido',
+        code: `# Ejemplo simple con turtle minimal
+turtle.width_(3)
+turtle.color_("#0a84ff")
+turtle.forward(120)
+turtle.left(90)
+turtle.forward(120)
+print("Listo!")`
+      },
+      {
+        title: 'Error intencional',
+        code: `print("Antes del error")
+1/0
+print("Esto no se verá")`
+      }
+    ];
+
+    // ===== 2) Utilidades =====
+    const encodeCode = (txt) => btoa(encodeURIComponent(txt)); // mismo esquema que tu IDE
+
+    function setEstado(dotEl, labelEl, state, text) {
+      dotEl.className = 'dot';
+      if (state === 'running') dotEl.classList.add('running');
+      if (state === 'ok') dotEl.classList.add('ok');
+      if (state === 'error') dotEl.classList.add('error');
+      labelEl.textContent = text || '';
+    }
+
+    function snapshotSalida(iframe, lines = 12) {
+      try {
+        const doc = iframe.contentDocument || iframe.contentWindow.document;
+        const out = doc && doc.getElementById('output');
+        if (!out) return '';
+        return (out.textContent || '').split('\n').slice(-lines).join('\n');
+      } catch {
+        return '(No se pudo leer la salida)';
+      }
+    }
+
+    // ===== 3) Auto-resize de iframes (mismo origen) =====
+    function autoResizeIframe(iframe, { min = 560, max = 2400, pad = 0 } = {}) {
+      if (!iframe) return;
+      const recompute = () => {
+        try {
+          const doc = iframe.contentDocument || iframe.contentWindow.document;
+          if (!doc) return;
+          const h1 = doc.documentElement ? doc.documentElement.scrollHeight : 0;
+          const h2 = doc.body ? doc.body.scrollHeight : 0;
+          let newH = Math.max(h1, h2) + pad;
+          newH = Math.min(Math.max(newH, min), max);
+          iframe.style.height = newH + 'px';
+        } catch (_) { /* cross-origin guard */ }
+      };
+
+      iframe.addEventListener('load', () => {
+        recompute();
+        try {
+          const doc = iframe.contentDocument || iframe.contentWindow.document;
+          if ('ResizeObserver' in window && doc) {
+            const ro = new ResizeObserver(recompute);
+            if (doc.body) ro.observe(doc.body);
+            if (doc.documentElement) ro.observe(doc.documentElement);
+            iframe.__ro = ro;
+          } else {
+            iframe.__interval = setInterval(recompute, 500);
+          }
+          if (doc && doc.fonts && doc.fonts.ready) {
+            doc.fonts.ready.then(recompute).catch(() => {});
+          }
+        } catch (_) {}
+      });
+
+      window.addEventListener('resize', recompute);
+    }
+
+    // ===== 4) Vista/Modelo por bloque =====
+    const blocks = []; // { iframe, dot, label, mini, timer, title }
+
+    function createEmbed({ title, src }) {
+      const cont = document.getElementById('embeds');
+
+      const block = document.createElement('div');
+      block.className = 'embed-block';
+
+      const h = document.createElement('h3');
+      h.className = 'title';
+      h.textContent = title || 'Ejemplo';
+
+      const estado = document.createElement('div');
+      estado.className = 'estado';
+      const dot = document.createElement('span');
+      dot.className = 'dot';
+      const label = document.createElement('span');
+      label.className = 'label';
+      label.textContent = 'Cargando iframe…';
+      estado.appendChild(dot);
+      estado.appendChild(label);
+
+      const iframe = document.createElement('iframe');
+      iframe.className = 'frame';
+      iframe.loading = 'lazy';
+      iframe.allow = 'clipboard-read; clipboard-write; fullscreen';
+      iframe.src = src;
+
+      // ⭐ Auto-resize apenas lo creamos
+      autoResizeIframe(iframe, { min: 560, max: 2400, pad: 0 });
+
+      const mini = document.createElement('pre');
+      mini.className = 'mini';
+      mini.textContent = '[resumen de salida aparecerá aquí]\n';
+
+      block.appendChild(h);
+      block.appendChild(estado);
+      block.appendChild(iframe);
+      block.appendChild(mini);
+      cont.appendChild(block);
+
+      const rec = { iframe, dot, label, mini, timer: null, title: h.textContent };
+      blocks.push(rec);
+
+      iframe.addEventListener('load', () => {
+        setEstado(dot, label, '', 'Iframe cargado; esperando IDE…');
+      });
+    }
+
+    function findBlockByWindow(win) {
+      return blocks.find(b => b.iframe.contentWindow === win);
+    }
+
+    // ===== 5) Mensajería desde cada IDE =====
+    window.addEventListener('message', (ev) => {
+      if (ev.origin !== window.location.origin) return; // seguridad: mismo origen
+      const d = ev.data || {};
+      if (d.source !== 'IDE') return;
+
+      const b = findBlockByWindow(ev.source);
+      if (!b) return;
+
+      if (d.type === 'ide:ready') {
+        setEstado(b.dot, b.label, '', 'IDE listo ✓');
+      }
+      if (d.type === 'run:start') {
+        clearTimeout(b.timer);
+        setEstado(b.dot, b.label, 'running', 'Ejecutando…');
+        b.timer = setTimeout(() => {
+          setEstado(b.dot, b.label, 'error', 'Timeout (¿bucle infinito?)');
+          alert('⏱️ ' + b.title + ': la ejecución tardó demasiado.');
+        }, TIMEOUT_MS);
+      }
+      if (d.type === 'run:complete') {
+        clearTimeout(b.timer);
+        if (d.success) {
+          setEstado(b.dot, b.label, 'ok', 'Ejecución OK ✓');
+          b.mini.textContent = snapshotSalida(b.iframe, 16);
+        } else {
+          setEstado(b.dot, b.label, 'error', 'Error en ejecución');
+          const snap = snapshotSalida(b.iframe, 12);
+          b.mini.textContent = `[ERROR]\n${(d.error || '(sin detalle)')}\n\n${snap}`;
+        }
+        // Reajustar por si cambió la altura tras imprimir salida
+        autoResizeIframe(b.iframe, { min: 560, max: 2400, pad: 0 });
+      }
+      if (d.type === 'ide:error') {
+        clearTimeout(b.timer);
+        setEstado(b.dot, b.label, 'error', 'Error inicializando IDE');
+        b.mini.textContent = `[IDE ERROR]\n${(d.message || '(sin detalle)')}`;
+      }
+    });
+
+    // ===== 6) Construcción automática desde el array =====
+    EJEMPLOS.forEach((ej, idx) => {
+      const id = `ej${idx+1}`;
+      const src = `./?codigo=${encodeCode(ej.code)}&id=${encodeURIComponent(id)}`;
+      createEmbed({ title: ej.title, src });
+    });
+  </script>
+</body>
+</html>
+
+       
