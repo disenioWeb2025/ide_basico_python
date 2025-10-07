@@ -289,6 +289,17 @@ t = turtle.Turtle()
 W, H = 640, 480
 
 def goto_centered(x, y):
+    t.goto(W/2 + x, H/2 - y)
 
+t.penup(); goto_centered(0, 0); t.pendown()
+goto_centered(100, 0)
+goto_centered(100, 100)
+goto_centered(0, 100)
+goto_centered(0, 0)
+\`\`\`
 
-
+## Diferencias vs turtle estándar
+- Origen arriba-izquierda y Y positiva hacia abajo.
+- \`speed()\` no anima; \`done()\` no bloquea.
+- Subconjunto de funciones usado en el IDE.
+`,
