@@ -46,6 +46,40 @@ const urlParams = new URLSearchParams(location.search);
 const EMBED_EXERCISE_ID = urlParams.get("exerciseId") || null;
 
 /* =========================
+   Leer código desde URL
+========================= */
+function getCodeFromURL() {
+  const params = new URLSearchParams(location.search);
+
+  // 1) Código comprimido con LZString (?code=...)
+  if (params.has("code")) {
+    try {
+      if (typeof LZString !== "undefined") {
+        const decompressed = LZString.decompressFromEncodedURIComponent(params.get("code"));
+        if (typeof decompressed === "string" && decompressed.length) {
+          return decompressed;
+        }
+      } else {
+        console.warn("LZString no está cargado; usa code_raw en la URL.");
+      }
+    } catch (e) {
+      console.warn("No se pudo descomprimir 'code':", e);
+    }
+  }
+
+  // 2) Código sin comprimir (?code_raw=...)
+  if (params.has("code_raw")) {
+    try {
+      return decodeURIComponent(params.get("code_raw"));
+    } catch {
+      return params.get("code_raw");
+    }
+  }
+
+  return null;
+}
+
+/* =========================
    Editor (CodeMirror fallback a textarea)
 ========================= */
 let editor = null;
@@ -93,13 +127,13 @@ function setupInputBridge(pyodide) {
 
   const pyInputShim = `
 import sys
-from jsbridge import input as __js_input
+from jsbridge import input as js_input_bridge
 
-def __py_input(prompt=""):
-    return __js_input(prompt)
+def py_input_wrapper(prompt=""):
+    return js_input_bridge(prompt)
 
 # Reemplazar builtins.input por nuestro puente
-__builtins__.input = __py_input
+__builtins__.input = py_input_wrapper
 `;
   return pyInputShim;
 }
@@ -200,7 +234,7 @@ async function loadPython() {
 }
 
 /* =========================
-   Ejecución de código (FIX del wrapper)
+   Ejecución de código (FIX del wrapper sin name mangling)
 ========================= */
 async function ejecutarCodigo() {
   clearOutput();
@@ -231,7 +265,6 @@ sys.stderr = JSWriter()
 ${code}
 `;
     await pyodide.runPythonAsync(wrapper);
-
     sendParent("run_success", { exerciseId: EMBED_EXERCISE_ID });
   } catch (err) {
     appendOutput(String(err));
@@ -286,6 +319,13 @@ function wireUI() {
 
 document.addEventListener("DOMContentLoaded", () => {
   initEditor();
+
+  // Si viene código en la URL, sobreescribe el editor
+  const codeFromURL = getCodeFromURL();
+  if (codeFromURL && editor && typeof editor.setValue === "function") {
+    editor.setValue(codeFromURL);
+  }
+
   wireUI();
   loadPython().then(() => {
     console.log("✅ IDE listo");
