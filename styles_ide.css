@@ -526,3 +526,48 @@ body {
   }
 }
 
+/* Topbar: botones a la izquierda, status a la derecha */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  gap: 12px;
+}
+
+/* Reutilizamos .control-buttons pero sin padding propio (ya lo da .topbar) */
+.topbar .control-buttons {
+  display: flex;
+  gap: 10px;
+  padding: 0; /* importante para que no duplique padding */
+}
+
+/* Status compacto, alineado a la derecha */
+.topbar .status-top {
+  margin: 0;
+  padding: 0;
+  font-weight: 500;
+  font-size: 14px;
+  color: #333;
+  text-align: right;
+}
+
+/* Si querés conservar los colores de estado, mantenelos por clase */
+.status-top.ready { color: #155724; }
+.status-top.loading { color: #856404; }
+.status-top.error { color: #721c24; }
+
+/* En mobile, que se apilen */
+@media (max-width: 768px) {
+  .topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .topbar .status-top {
+    text-align: left;
+  }
+}
+
+
