@@ -1,4 +1,4 @@
-/* ide_core.js - IDE Pyodide + input async + turtle canvas + embed modal */
+/* ide_core.js - IDE Pyodide + input async + turtle canvas + embed modal + postMessage */
 
 let pyodide = null;
 let editor = null;
@@ -16,6 +16,19 @@ const selectPlantillas = $("plantillas-select");
 const runBtn = $("run-btn");
 const clearBtn = $("clear-btn");
 const embedBtn = $("embed-btn");
+
+/* postMessage al padre */
+const urlParams = new URLSearchParams(location.search);
+const EMBED_EXERCISE_ID = urlParams.get("exerciseId") || null;
+
+function sendParent(eventType, payload = {}) {
+  try {
+    window.parent?.postMessage(
+      { source: "py-ide", type: eventType, ...payload },
+      "*"
+    );
+  } catch (_) {}
+}
 
 /* Consola de salida: siempre agrega un salto de línea */
 function printToOutput(text) {
@@ -471,6 +484,7 @@ sys.modules['turtle'] = turtle
   await pyodide.runPythonAsync(bootstrapPy);
 
   statusEl.textContent = "Python 3.11 | Pyodide listo";
+  sendParent("ide_ready", { exerciseId: EMBED_EXERCISE_ID });
 }
 
 /* Ejecutar código del usuario */
@@ -478,6 +492,8 @@ async function ejecutarCodigo() {
   if (!pyodide || isRunning) return;
   isRunning = true;
   clearOutput();
+  sendParent("run_started", { exerciseId: EMBED_EXERCISE_ID });
+  
   const code = getUserCode();
 
   try {
@@ -515,9 +531,20 @@ except Exception:
       "\nawait __user_main__()\n";
 
     await pyodide.runPythonAsync(wrapped);
+    
+    // ✅ Éxito
+    sendParent("run_success", { exerciseId: EMBED_EXERCISE_ID });
+    
   } catch (err) {
     printToOutput("❌ Error: " + (err && err.message ? err.message : String(err)));
     console.error(err);
+    
+    // ❌ Error
+    sendParent("run_error", {
+      exerciseId: EMBED_EXERCISE_ID,
+      message: err && err.message ? err.message : String(err),
+    });
+    
   } finally {
     isRunning = false;
   }
@@ -684,7 +711,12 @@ function generarEmbed() {
     }
 
     const compressed = LZString.compressToEncodedURIComponent(code);
-    const url = `https://disenioweb2025.github.io/ide_basico_python/?code=${compressed}`;
+    let url = `https://disenioweb2025.github.io/ide_basico_python/?code=${compressed}`;
+
+    // Agregar exerciseId si existe
+    if (EMBED_EXERCISE_ID) {
+      url += `&exerciseId=${encodeURIComponent(EMBED_EXERCISE_ID)}`;
+    }
 
     const iframeSnippet = `<iframe
   src="${url}"
