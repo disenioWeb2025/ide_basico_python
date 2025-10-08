@@ -1,4 +1,4 @@
-/* script_ide.js - IDE Pyodide + input async + turtle canvas + embed modal */
+/* ide_core.js - IDE Pyodide + input async + turtle canvas + embed modal */
 
 let pyodide = null;
 let editor = null;
@@ -256,9 +256,9 @@ async function loadPython() {
             }
             ctx.beginPath();
             for (let i = 0; i < points.length; i++) {
-              const [x, y, move] = points[i];
-              if (i === 0 || move) ctx.moveTo(x, y);
-              else ctx.lineTo(x, y);
+              const [px, py, move] = points[i];
+              if (i === 0 || move) ctx.moveTo(px, py);
+              else ctx.lineTo(px, py);
             }
             ctx.closePath();
             ctx.fill();
@@ -378,8 +378,8 @@ class _TurtleCanvas:
         self.x, self.y = float(x), float(y)
         if self._pen_down:
             self._ops.append(["line", x1, y1, self.x, self.y, self._pencolor, self._linewidth])
-        self._record_fill_point(move=False)
-        self._commit_ops()
+            self._record_fill_point(move=False)
+            self._commit_ops()
 
     def forward(self, d):
         rad = math.radians(self.heading)
@@ -539,20 +539,18 @@ function ensureEmbedModal() {
     display: "none",
     position: "fixed",
     inset: "0",
-    // Fondo gris claro translúcido
     background: "rgba(200,200,200,0.65)",
     zIndex: "10000",
     alignItems: "center",
     justifyContent: "center",
-    // Permite cerrar al hacer click fuera
     cursor: "default",
   });
 
-  // Contenedor del diálogo en gris
+  // Contenedor del diálogo
   const dialog = document.createElement("div");
   Object.assign(dialog.style, {
-    background: "#f3f3f3",          // gris claro
-    color: "#222",                  // texto oscuro
+    background: "#f3f3f3",
+    color: "#222",
     width: "min(900px, 92%)",
     border: "1px solid #cfcfcf",
     borderRadius: "10px",
@@ -604,7 +602,7 @@ function ensureEmbedModal() {
   Object.assign(ta.style, {
     width: "100%",
     height: "180px",
-    background: "#fff",           // blanco para mejor contraste
+    background: "#fff",
     color: "#111",
     border: "1px solid #cfcfcf",
     borderRadius: "8px",
@@ -699,7 +697,6 @@ function generarEmbed() {
   sandbox="allow-scripts allow-same-origin"
 ></iframe>`;
 
-    // Asegurar modal y textarea
     const modal = ensureEmbedModal();
     const ta = modal.querySelector("#embed-textarea");
 
