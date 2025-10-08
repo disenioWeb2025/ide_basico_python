@@ -153,25 +153,21 @@ async function loadPython() {
   try {
     setStatus("Cargando Python...", "loading");
 
-    // Cargar script de Pyodide dinámicamente
-    await new Promise((resolve, reject) => {
-      if (window.loadPyodide) return resolve();
-      const s = document.createElement("script");
-      // Podés cambiar CDN si tu red bloquea alguno:
-      // jsDelivr:
-      // s.src = "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js";
-      // CDN alternativo oficial:
-      s.src = "https://pyodide-cdn2.iodide.io/v0.24.1/full/pyodide.js";
-      s.async = true;
-      s.onload = resolve;
-      s.onerror = () => reject(new Error("No se pudo cargar pyodide.js"));
-      document.head.appendChild(s);
-    });
+   // Cargar script de Pyodide dinámicamente (jsDelivr)
+await new Promise((resolve, reject) => {
+  if (window.loadPyodide) return resolve();
+  const s = document.createElement("script");
+  s.src = "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js";
+  s.async = true;
+  s.onload = resolve;
+  s.onerror = () => reject(new Error("No se pudo cargar pyodide.js"));
+  document.head.appendChild(s);
+});
 
-    pyodide = await loadPyodide({
-      indexURL: "https://pyodide-cdn2.iodide.io/v0.24.1/full/",
-    });
-
+// Inicializar Pyodide con el mismo host/versión
+pyodide = await loadPyodide({
+  indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/",
+});
     // Puente de input/print
     const shim = setupInputBridge(pyodide);
     await pyodide.runPythonAsync(shim);
