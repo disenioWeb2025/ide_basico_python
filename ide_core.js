@@ -1,754 +1,285 @@
-/* ide_core.js - IDE Pyodide + input async + turtle canvas + embed modal */
+/* ide_core.js - IDE Pyodide básico con CodeMirror, soporte input y eventos postMessage */
 
-let pyodide = null;
-let editor = null;
-let isRunning = false;
+/* =========================
+   Utilidades generales
+========================= */
+function $(id) {
+  return document.getElementById(id);
+}
 
-/* Utilidades DOM */
-const $ = (id) => document.getElementById(id);
-const statusEl = $("status");
-const outputEl = $("output");
-const inputSection = $("input-section");
-const inputPromptEl = $("input-prompt");
-const inputField = $("input-field");
-const submitInputBtn = $("submit-input");
-const selectPlantillas = $("plantillas-select");
-const runBtn = $("run-btn");
-const clearBtn = $("clear-btn");
-const embedBtn = $("embed-btn");
-
-/* Consola de salida: siempre agrega un salto de línea */
-function printToOutput(text) {
-  if (text == null) return;
-  outputEl.textContent += String(text) + "\n";
-  outputEl.scrollTop = outputEl.scrollHeight;
+function appendOutput(text) {
+  const out = $("output");
+  if (!out) return;
+  const pre = document.createElement("pre");
+  pre.textContent = text;
+  out.appendChild(pre);
+  out.scrollTop = out.scrollHeight;
 }
 
 function clearOutput() {
-  outputEl.textContent = "";
+  const out = $("output");
+  if (out) out.innerHTML = "";
 }
 
-/* Editor: CodeMirror o textarea */
+function setStatus(msg, cls) {
+  const s = $("status");
+  if (!s) return;
+  s.textContent = msg;
+  s.classList.remove("loading", "ready", "error");
+  if (cls) s.classList.add(cls);
+}
+
+/* =========================
+   postMessage al padre
+========================= */
+function sendParent(eventType, payload = {}) {
+  try {
+    window.parent?.postMessage(
+      { source: "py-ide", type: eventType, ...payload },
+      "*"
+    );
+  } catch (_) {}
+}
+
+// Identificador opcional del ejercicio embebido (si viene en la URL)
+const urlParams = new URLSearchParams(location.search);
+const EMBED_EXERCISE_ID = urlParams.get("exerciseId") || null;
+
+/* =========================
+   Editor (CodeMirror fallback a textarea)
+========================= */
+let editor = null;
+
 function initEditor() {
   const textarea = $("code-editor");
+  if (!textarea) return;
+
+  // Si CodeMirror está disponible, lo usamos
   if (window.CodeMirror) {
     editor = CodeMirror.fromTextArea(textarea, {
       mode: "python",
-      theme: "monokai",
+      theme: "default",
       lineNumbers: true,
       indentUnit: 4,
       tabSize: 4,
       lineWrapping: true,
+      viewportMargin: Infinity,
     });
-    editor.setSize("100%", "420px");
   } else {
-    editor = null;
+    // Fallback: usamos el textarea directamente
+    editor = {
+      getValue: () => textarea.value,
+      setValue: (v) => (textarea.value = v),
+      focus: () => textarea.focus(),
+    };
   }
 }
 
-function getUserCode() {
-  if (editor) return editor.getValue();
-  return $("code-editor").value;
-}
+/* =========================
+   Entrada interactiva (input)
+========================= */
+let waitingForInput = null;
 
-function setUserCode(code) {
-  if (editor) editor.setValue(code);
-  else $("code-editor").value = code;
-}
-
-/* Plantillas */
-function sanitizePlantillas() {
-  if (!window.PLANTILLAS) return;
-  const keys = ["Corazón", "corazon", "corazon_heart", "heart", "corazon_turtle"];
-  for (const k of keys) {
-    if (k in window.PLANTILLAS) delete window.PLANTILLAS[k];
-  }
-}
-
-/* Opción A: NO repoblar el select para mantener los optgroups del HTML */
-function repoblarSelectPlantillas() {
-  // Intencionalmente vacío: usamos el <select> con <optgroup> definido en index_plantillas.html
-}
-
-function cargarPlantilla() {
-  const key = selectPlantillas ? selectPlantillas.value : "";
-  if (!key) return;
-  const plantillas = window.PLANTILLAS || {};
-  const code = plantillas[key];
-  if (code) setUserCode(code);
-}
-
-/* Input async bridged al panel */
-let pendingInputResolve = null;
-
-function showInputPrompt(promptText) {
-  inputPromptEl.textContent = promptText || "Introduce un valor:";
-  inputField.value = "";
-  inputSection.classList.remove("input-hidden");
-  inputField.focus();
-}
-
-function hideInputPrompt() {
-  inputSection.classList.add("input-hidden");
-}
-
-if (submitInputBtn) {
-  submitInputBtn.addEventListener("click", () => {
-    if (pendingInputResolve) {
-      const value = inputField.value;
-      const resolve = pendingInputResolve;
-      pendingInputResolve = null;
-      hideInputPrompt();
-      resolve(value);
-    }
-  });
-}
-
-if (inputField) {
-  inputField.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") submitInputBtn.click();
-  });
-}
-
-/* Turtle Canvas: overlay */
-let turtleOverlay = null;
-let turtleCanvas = null;
-let turtleCtx = null;
-
-function ensureTurtleCanvas() {
-  if (turtleOverlay) return;
-
-  turtleOverlay = document.createElement("div");
-  Object.assign(turtleOverlay.style, {
-    position: "fixed",
-    inset: "0",
-    background: "rgba(0,0,0,0.4)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: "9999",
-  });
-
-  const panel = document.createElement("div");
-  Object.assign(panel.style, {
-    background: "#111",
-    border: "1px solid #333",
-    borderRadius: "8px",
-    padding: "8px",
-    boxShadow: "0 8px 30px rgba(0,0,0,0.5)",
-  });
-
-  turtleCanvas = document.createElement("canvas");
-  turtleCanvas.width = 640;
-  turtleCanvas.height = 480;
-  turtleCanvas.style.background = "#ffff";
-  panel.appendChild(turtleCanvas);
-
-  const closeBtn = document.createElement("button");
-  closeBtn.textContent = "Cerrar";
-  Object.assign(closeBtn.style, {
-    marginLeft: "8px",
-    padding: "6px 10px",
-    background: "#444",
-    color: "#fff",
-    border: "1px solid #666",
-    borderRadius: "6px",
-    cursor: "pointer",
-  });
-  closeBtn.addEventListener("click", () => {
-    if (turtleOverlay) {
-      document.body.removeChild(turtleOverlay);
-      turtleOverlay = null;
-      turtleCanvas = null;
-      turtleCtx = null;
-    }
-  });
-
-  const header = document.createElement("div");
-  header.style.display = "flex";
-  header.style.alignItems = "center";
-  header.style.justifyContent = "space-between";
-  header.style.marginBottom = "6px";
-
-  const title = document.createElement("span");
-  title.textContent = "Canvas Turtle";
-  title.style.color = "#ddd";
-  title.style.fontFamily = "system-ui, sans-serif";
-  header.appendChild(title);
-  header.appendChild(closeBtn);
-
-  const wrap = document.createElement("div");
-  wrap.appendChild(header);
-  wrap.appendChild(panel);
-
-  turtleOverlay.appendChild(wrap);
-  document.body.appendChild(turtleOverlay);
-  turtleCtx = turtleCanvas.getContext("2d");
-}
-
-/* Carga Pyodide y configura entorno */
-async function loadPython() {
-  statusEl.textContent = "Cargando Python...";
-
-  if (!window.loadPyodide) {
-    const s = document.createElement("script");
-    s.src = "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js";
-    document.head.appendChild(s);
-    await new Promise((res, rej) => {
-      s.onload = res;
-      s.onerror = () => rej(new Error("No se pudo cargar pyodide.js"));
-    });
-  }
-
-  pyodide = await loadPyodide({ indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/" });
-
-  // Captura stdout/stderr directamente
-  pyodide.setStdout({ batched: (s) => printToOutput(s) });
-  pyodide.setStderr({ batched: (s) => printToOutput(s) });
-
-  // Módulo puente JS
-  const jsModule = {
-    js_show_input: (promptText) => { showInputPrompt(promptText || "Introduce un valor:"); },
-    js_wait_input: () => new Promise((resolve) => { pendingInputResolve = resolve; }),
-    js_ensure_turtle_canvas: () => { ensureTurtleCanvas(); return true; },
-    js_turtle_draw: (ops) => {
-      if (!turtleCanvas || !turtleCtx) return;
-      const ctx = turtleCtx;
-      for (const op of ops) {
-        const [cmd, ...args] = op;
-        switch (cmd) {
-          case "bg": {
-            ctx.save();
-            ctx.fillStyle = args[0] || "#ffff";
-            ctx.fillRect(0, 0, turtleCanvas.width, turtleCanvas.height);
-            ctx.restore();
-            break;
-          }
-          case "line": {
-            const [x1, y1, x2, y2, color, width] = args;
-            ctx.save();
-            ctx.strokeStyle = color || "#000";
-            ctx.lineWidth = width || 1;
-            ctx.beginPath();
-            ctx.moveTo(x1, y1);
-            ctx.lineTo(x2, y2);
-            ctx.stroke();
-            ctx.restore();
-            break;
-          }
-          case "dot": {
-            const [x, y, r, color] = args;
-            ctx.save();
-            ctx.fillStyle = color || "#000";
-            ctx.beginPath();
-            ctx.arc(x, y, r || 2, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-            break;
-          }
-          case "fillpath": {
-            const [points, color, strokeColor, width] = args;
-            ctx.save();
-            ctx.fillStyle = color || "#000";
-            if (strokeColor) {
-              ctx.strokeStyle = strokeColor;
-              ctx.lineWidth = width || 1;
-            }
-            ctx.beginPath();
-            for (let i = 0; i < points.length; i++) {
-              const [px, py, move] = points[i];
-              if (i === 0 || move) ctx.moveTo(px, py);
-              else ctx.lineTo(px, py);
-            }
-            ctx.closePath();
-            ctx.fill();
-            if (strokeColor) ctx.stroke();
-            ctx.restore();
-            break;
-          }
-          case "clear": {
-            ctx.clearRect(0, 0, turtleCanvas.width, turtleCanvas.height);
-            break;
-          }
-        }
-      }
+function setupInputBridge(pyodide) {
+  // Implementamos input() redirigido a UI de la página
+  pyodide.registerJsModule("jsbridge", {
+    input: async (promptText) => {
+      return await getUserInput(promptText || "");
     },
-  };
+    print: (text) => {
+      appendOutput(String(text ?? ""));
+    },
+  });
 
-  pyodide.registerJsModule("ide_bridge", jsModule);
-
-  // Bootstrap Python
-  const bootstrapPy = `
-from ide_bridge import js_show_input, js_wait_input, js_ensure_turtle_canvas, js_turtle_draw
-import math, sys, asyncio
-
-# input asíncrono
-async def input(prompt=""):
-    js_show_input(str(prompt))
-    s = await js_wait_input()
-    return str(s)
-
-class _TurtleCanvas:
-    def __init__(self, w=640, h=480):
-        self.w = w
-        self.h = h
-        self.x = w / 2
-        self.y = h / 2
-        self.heading = 0.0
-        self._pen_down = True
-        self._visible = True
-        self._speed = 0
-        self._bg = "#ffff"
-        self._pencolor = "#d33"
-        self._fillcolor = "#f9a"
-        self._linewidth = 2
-        self._filling = False
-        self._fill_points = []
-        self._ops = []
-        js_ensure_turtle_canvas()
-        self._ops.append(["bg", self._bg])
-        self._commit_ops()
-
-    def _commit_ops(self):
-        if self._ops:
-            js_turtle_draw(self._ops)
-            self._ops.clear()
-
-    def _record_fill_point(self, move=False):
-        if self._filling:
-            self._fill_points.append([self.x, self.y, bool(move)])
-
-    def speed(self, n=None):
-        if n is None:
-            return self._speed
-        try:
-            self._speed = int(n)
-        except:
-            self._speed = 0
-
-    def title(self, *args, **kwargs): return
-    def shape(self, *args, **kwargs): return
-
-    def color(self, *args):
-        if len(args) == 1:
-            self.pencolor(args[0])
-        elif len(args) >= 2:
-            self.pencolor(args[0]); self.fillcolor(args[1])
-
-    def pencolor(self, c=None):
-        if c is None: return self._pencolor
-        self._pencolor = str(c)
-
-    def fillcolor(self, c=None):
-        if c is None: return self._fillcolor
-        self._fillcolor = str(c)
-
-    def width(self, w): self._linewidth = max(1, int(w))
-    def pensize(self, w): self.width(w)
-
-    def bgcolor(self, c="#ffff"):
-        self._bg = str(c)
-        self._ops.append(["bg", self._bg])
-        self._commit_ops()
-
-    def penup(self): self._pen_down = False
-    def pendown(self): self._pen_down = True
-    def isdown(self): return self._pen_down
-    def hideturtle(self): self._visible = False
-    def showturtle(self): self._visible = True
-    ht = hideturtle; st = showturtle
-
-    def setheading(self, ang): self.heading = float(ang) % 360.0
-    def left(self, ang):  self.heading = (self.heading + float(ang)) % 360.0
-    def right(self, ang): self.heading = (self.heading - float(ang)) % 360.0
-
-    def setx(self, x): self.goto(float(x), self.y)
-    def sety(self, y): self.goto(self.x, float(y))
-    def setpos(self, x, y=None):
-        if y is None and hasattr(x, "__iter__"): x, y = x
-        self.goto(float(x), float(y))
-    setposition = setpos
-
-    def home(self):
-        self.goto(self.w/2, self.h/2)
-        self.setheading(0)
-
-    def goto(self, x, y):
-        x1, y1 = self.x, self.y
-        self.x, self.y = float(x), float(y)
-        if self._pen_down:
-            self._ops.append(["line", x1, y1, self.x, self.y, self._pencolor, self._linewidth])
-            self._record_fill_point(move=False)
-            self._commit_ops()
-
-    def forward(self, d):
-        rad = math.radians(self.heading)
-        nx = self.x + math.cos(rad) * float(d)
-        ny = self.y - math.sin(rad) * float(d)
-        self.goto(nx, ny)
-    fd = forward
-
-    def backward(self, d):
-        self.forward(-float(d))
-    bk = back = backward
-
-    def dot(self, size=3, color=None):
-        col = self._pencolor if color is None else str(color)
-        self._ops.append(["dot", self.x, self.y, float(size), col])
-        self._record_fill_point(move=False)
-        self._commit_ops()
-
-    def begin_fill(self):
-        self._filling = True
-        self._fill_points = [[self.x, self.y, True]]
-
-    def end_fill(self):
-        if self._filling:
-            pts = self._fill_points[:]
-            if len(pts) >= 3:
-                self._ops.append(["fillpath", pts, self._fillcolor, self._pencolor, self._linewidth])
-                self._commit_ops()
-        self._filling = False
-        self._fill_points = []
-
-    def circle(self, radius, extent=None, steps=None):
-        r = float(radius)
-        total = 360.0 if extent is None else float(extent)
-        if steps is None:
-            steps = max(12, int(abs(total) / 2))
-        steps = min(360, steps)
-        step_deg = total / steps
-        chord = 2.0 * abs(r) * math.sin(math.radians(abs(step_deg) / 2.0))
-        turn = step_deg
-        if r < 0:
-            turn = -turn
-        for _ in range(steps):
-            self.forward(chord)
-            self.left(turn)
-
-    beginfill = begin_fill
-    endfill = end_fill
-
-class _TurtleModule:
-    def __init__(self):
-        self._default = None
-
-    def _get_default(self):
-        if self._default is None:
-            self._default = _TurtleCanvas()
-        return self._default
-
-    def reset(self):
-        self._default = None
-
-    def Turtle(self):
-        return _TurtleCanvas()
-
-    # API módulo
-    def bgcolor(self, c): self._get_default().bgcolor(c)
-    def color(self, *args): self._get_default().color(*args)
-    def pensize(self, w): self._get_default().pensize(w)
-    def penup(self): self._get_default().penup()
-    def pendown(self): self._get_default().pendown()
-    def forward(self, d): self._get_default().forward(d)
-    def left(self, a): self._get_default().left(a)
-    def right(self, a): self._get_default().right(a)
-    def circle(self, r, extent=None, steps=None): self._get_default().circle(r, extent, steps)
-    def begin_fill(self): self._get_default().begin_fill()
-    def end_fill(self): self._get_default().end_fill()
-    def dot(self, size=3, color=None): self._get_default().dot(size, color)
-    def setheading(self, a): self._get_default().setheading(a)
-    def goto(self, x, y): self._get_default().goto(x, y)
-    def done(self): return
-    fd = forward
-    rt = right
-    lt = left
-
-turtle = _TurtleModule()
-sys.modules['turtle'] = turtle
-`;
-
-  await pyodide.runPythonAsync(bootstrapPy);
-
-  statusEl.textContent = "Python 3.11 | Pyodide listo";
-}
-
-/* Ejecutar código del usuario */
-async function ejecutarCodigo() {
-  if (!pyodide || isRunning) return;
-  isRunning = true;
-  clearOutput();
-  const code = getUserCode();
-
-  try {
-    // 1) Limpiar canvas JS
-    if (turtleCtx && turtleCanvas) {
-      turtleCtx.clearRect(0, 0, turtleCanvas.width, turtleCanvas.height);
-    }
-
-    // 2) Reinyectar y resetear módulo turtle ANTES de ejecutar usuario
-    await pyodide.runPythonAsync(`
+  const pyInputShim = `
 import sys
-# Asegurar que nuestro turtle esté registrado
-if 'turtle' not in sys.modules:
-    try:
-        sys.modules['turtle'] = turtle
-    except NameError:
-        pass
-# Resetear estado
-try:
-    import turtle
-    turtle.reset()
-except Exception:
-    pass
-`);
+from jsbridge import input as __js_input, print as __js_print
 
-    // 3) Hint si usan input sin await
-    if (/\binput\s*\(/.test(code) && !/\bawait\s+input\s*\(/.test(code)) {
-      printToOutput('⚠️ Recordá usar: await input("...")');
+def __py_input(prompt=""):
+    return __js_input(prompt)
+
+# Reemplazar builtins.input por nuestro puente
+__builtins__.input = __py_input
+`;
+  return pyInputShim;
+}
+
+function getUserInput(promptText) {
+  return new Promise((resolve) => {
+    const inputSection = $("input-section");
+    const promptEl = $("input-prompt");
+    const field = $("input-field");
+    const btn = $("submit-input");
+
+    if (!inputSection || !promptEl || !field || !btn) {
+      // Si no hay UI de input, pedimos con prompt() nativo
+      const val = window.prompt(promptText || "Entrada:");
+      resolve(val ?? "");
+      return;
     }
 
-    // 4) Envolver código en async
-    const wrapped =
-      "async def __user_main__():\n" +
-      code.split("\n").map((line) => "    " + line).join("\n") +
-      "\nawait __user_main__()\n";
+    promptEl.textContent = promptText || "Entrada:";
+    field.value = "";
+    inputSection.style.display = "flex";
+    field.focus();
 
-    await pyodide.runPythonAsync(wrapped);
+    const submit = () => {
+      const v = field.value;
+      cleanup();
+      resolve(v);
+    };
+    const onKey = (e) => {
+      if (e.key === "Enter") submit();
+    };
+    const cleanup = () => {
+      inputSection.style.display = "none";
+      btn.removeEventListener("click", submit);
+      field.removeEventListener("keydown", onKey);
+      waitingForInput = null;
+    };
+
+    waitingForInput = { submit };
+    btn.addEventListener("click", submit);
+    field.addEventListener("keydown", onKey);
+  });
+}
+
+/* =========================
+   Carga de Pyodide
+========================= */
+let pyodide = null;
+
+async function loadPython() {
+  try {
+    setStatus("Cargando Python...", "loading");
+
+    // Cargar script de Pyodide dinámicamente
+    await new Promise((resolve, reject) => {
+      if (window.loadPyodide) return resolve();
+      const s = document.createElement("script");
+      // Podés cambiar CDN si tu red bloquea alguno:
+      // jsDelivr:
+      // s.src = "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js";
+      // CDN alternativo oficial:
+      s.src = "https://pyodide-cdn2.iodide.io/v0.24.1/full/pyodide.js";
+      s.async = true;
+      s.onload = resolve;
+      s.onerror = () => reject(new Error("No se pudo cargar pyodide.js"));
+      document.head.appendChild(s);
+    });
+
+    pyodide = await loadPyodide({
+      indexURL: "https://pyodide-cdn2.iodide.io/v0.24.1/full/",
+    });
+
+    // Puente de input/print
+    const shim = setupInputBridge(pyodide);
+    await pyodide.runPythonAsync(shim);
+
+    setStatus("Python 3.11 | Pyodide listo", "ready");
+    sendParent("ide_ready", { exerciseId: EMBED_EXERCISE_ID });
   } catch (err) {
-    printToOutput("❌ Error: " + (err && err.message ? err.message : String(err)));
     console.error(err);
-  } finally {
-    isRunning = false;
+    setStatus("Error cargando Pyodide", "error");
+    appendOutput(String(err));
   }
 }
 
-/* Limpiar salida */
-function limpiarSalida() {
+/* =========================
+   Ejecución de código
+========================= */
+async function ejecutarCodigo() {
   clearOutput();
-}
+  sendParent("run_started", { exerciseId: EMBED_EXERCISE_ID });
 
-/* Asegura que el modal de embed exista; si no, lo crea e inicializa handlers */
-function ensureEmbedModal() {
-  let modal = document.getElementById("embed-modal");
-  if (modal) return modal;
+  const code = editor ? editor.getValue() : ($("code-editor")?.value || "");
+  if (!code) {
+    appendOutput("No hay código para ejecutar.");
+    return;
+  }
 
-  modal = document.createElement("div");
-  modal.id = "embed-modal";
-  Object.assign(modal.style, {
-    display: "none",
-    position: "fixed",
-    inset: "0",
-    background: "rgba(200,200,200,0.65)",
-    zIndex: "10000",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "default",
-  });
-
-  // Contenedor del diálogo
-  const dialog = document.createElement("div");
-  Object.assign(dialog.style, {
-    background: "#f3f3f3",
-    color: "#222",
-    width: "min(900px, 92%)",
-    border: "1px solid #cfcfcf",
-    borderRadius: "10px",
-    boxShadow: "0 10px 40px rgba(0,0,0,0.25)",
-    overflow: "hidden",
-    fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
-  });
-
-  const header = document.createElement("div");
-  Object.assign(header.style, {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "12px 14px",
-    borderBottom: "1px solid #ddd",
-    background: "#e9e9e9",
-  });
-  const title = document.createElement("strong");
-  title.textContent = "Iframe Snippet";
-  header.appendChild(title);
-
-  const closeBtn = document.createElement("button");
-  closeBtn.id = "embed-close";
-  closeBtn.textContent = "Cerrar";
-  Object.assign(closeBtn.style, {
-    background: "#ddd",
-    color: "#222",
-    border: "1px solid #bbb",
-    borderRadius: "8px",
-    padding: "6px 12px",
-    cursor: "pointer",
-  });
-  closeBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    modal.style.display = "none";
-  });
-  header.appendChild(closeBtn);
-
-  const body = document.createElement("div");
-  Object.assign(body.style, { padding: "12px" });
-
-  const p = document.createElement("p");
-  p.textContent = "Pega este snippet en tu HTML:";
-  p.style.margin = "0 0 8px 0";
-  p.style.color = "#333";
-
-  const ta = document.createElement("textarea");
-  ta.id = "embed-textarea";
-  Object.assign(ta.style, {
-    width: "100%",
-    height: "180px",
-    background: "#fff",
-    color: "#111",
-    border: "1px solid #cfcfcf",
-    borderRadius: "8px",
-    padding: "10px",
-    fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
-    fontSize: "13px",
-    lineHeight: "1.45",
-    boxSizing: "border-box",
-  });
-
-  const actions = document.createElement("div");
-  Object.assign(actions.style, { display: "flex", gap: "8px", marginTop: "10px" });
-
-  const copyBtn = document.createElement("button");
-  copyBtn.id = "embed-copy";
-  copyBtn.textContent = "Copiar";
-  Object.assign(copyBtn.style, {
-    background: "#2a6",
-    color: "#fff",
-    border: "1px solid #185",
-    borderRadius: "8px",
-    padding: "8px 12px",
-    cursor: "pointer",
-  });
-
-  copyBtn.addEventListener("click", async (e) => {
-    e.stopPropagation();
-    try {
-      ta.select();
-      ta.setSelectionRange(0, ta.value.length);
-      await navigator.clipboard.writeText(ta.value);
-      const prev = copyBtn.textContent;
-      copyBtn.textContent = "¡Copiado!";
-      setTimeout(() => (copyBtn.textContent = prev), 1200);
-    } catch {
-      window.prompt("Copia el snippet del iframe (Ctrl/Cmd+C):", ta.value);
-    }
-  });
-
-  actions.appendChild(copyBtn);
-  body.appendChild(p);
-  body.appendChild(ta);
-  body.appendChild(actions);
-
-  dialog.appendChild(header);
-  dialog.appendChild(body);
-  modal.appendChild(dialog);
-  document.body.appendChild(modal);
-
-  // Cerrar al hacer clic fuera del diálogo
-  modal.addEventListener("click", (e) => {
-    if (e.target === modal) modal.style.display = "none";
-  });
-
-  // Evitar que clics dentro del diálogo lo cierren
-  dialog.addEventListener("click", (e) => e.stopPropagation());
-
-  // Cerrar con tecla Esc
-  window.addEventListener("keydown", (e) => {
-    if (modal.style.display !== "none" && e.key === "Escape") {
-      modal.style.display = "none";
-    }
-  });
-
-  return modal;
-}
-
-/* Generar iframe embebible con el código del usuario (robusto) */
-function generarEmbed() {
   try {
-    const code = getUserCode();
-    if (typeof code !== "string") {
-      alert("No hay código para embeber.");
-      return;
-    }
-    if (typeof LZString === "undefined") {
-      alert("Falta LZString. Incluí el script de lz-string en el HTML.");
-      return;
-    }
+    // Redirigir stdout y stderr hacia appendOutput
+    const wrapper = `
+import sys, io
+from jsbridge import print as __js_print
 
+__stdout = io.StringIO()
+__stderr = io.StringIO()
+
+class _W:
+    def write(self, s):
+        __js_print(s)
+
+sys.stdout = _W()
+sys.stderr = _W()
+
+# === Código del usuario ===
+${code}
+`;
+    await pyodide.runPythonAsync(wrapper);
+
+    sendParent("run_success", { exerciseId: EMBED_EXERCISE_ID });
+  } catch (err) {
+    appendOutput(String(err));
+    sendParent("run_error", {
+      exerciseId: EMBED_EXERCISE_ID,
+      message: err && err.message ? err.message : String(err),
+    });
+  } finally {
+    // Restaurar UI input si quedó abierta
+    if (waitingForInput && typeof waitingForInput.submit === "function") {
+      // no forzamos submit; solo nos aseguramos de que no quede colgada
+    }
+  }
+}
+
+/* =========================
+   Embebido: generar URL con código
+========================= */
+function getEmbedURL() {
+  // Compactar el código con LZString si está disponible
+  const base = location.origin + location.pathname; // URL de esta página
+  const code = editor ? editor.getValue() : ($("code-editor")?.value || "");
+  let query = "";
+
+  if (typeof LZString !== "undefined" && code) {
     const compressed = LZString.compressToEncodedURIComponent(code);
-    const url = `https://disenioweb2025.github.io/ide_basico_python/?code=${compressed}`;
-
-    const iframeSnippet = `<iframe
-  src="${url}"
-  title="Programa Python embebido"
-  width="100%"
-  height="600"
-  frameborder="0"
-  loading="lazy"
-  allowfullscreen
-  sandbox="allow-scripts allow-same-origin"
-></iframe>`;
-
-    const modal = ensureEmbedModal();
-    const ta = modal.querySelector("#embed-textarea");
-
-    ta.value = iframeSnippet;
-    modal.style.display = "flex";
-    ta.focus();
-    ta.select();
-  } catch (e) {
-    console.error("Error en generarEmbed:", e);
-    alert("Ocurrió un error generando el snippet. Mirá la consola para más detalles.");
+    query = `?code=${compressed}`;
+  } else if (code) {
+    // Fallback (sin comprimir; largo)
+    query = `?code_raw=${encodeURIComponent(code)}`;
   }
+
+  // Preservar exerciseId si lo hay
+  const extra = EMBED_EXERCISE_ID
+    ? (query ? "&" : "?") + `exerciseId=${encodeURIComponent(EMBED_EXERCISE_ID)}`
+    : "";
+
+  return base + query + extra;
 }
 
-/* Cargar código desde query ?code= */
-function maybeLoadFromQuery() {
-  const params = new URLSearchParams(location.search);
-  const c = params.get("code");
-  if (c) {
-    try {
-      const code = LZString.decompressFromEncodedURIComponent(c);
-      if (code) setUserCode(code);
-    } catch (_) {}
-  }
+function copiarEmbed() {
+  const url = getEmbedURL();
+  navigator.clipboard
+    .writeText(url)
+    .then(() => alert("URL copiada al portapapeles"))
+    .catch(() => alert("No se pudo copiar. Copia manualmente:\n" + url));
 }
 
-/* Eventos UI */
-function initUI() {
-  if (selectPlantillas) selectPlantillas.addEventListener("change", cargarPlantilla);
-  if (runBtn) runBtn.addEventListener("click", ejecutarCodigo);
-  if (clearBtn) clearBtn.addEventListener("click", limpiarSalida);
-  if (embedBtn) {
-    embedBtn.addEventListener("click", generarEmbed);
-  } else {
-    console.warn("embed-btn no encontrado.");
-  }
+/* =========================
+   Botones y arranque
+========================= */
+function wireUI() {
+  $("run-btn")?.addEventListener("click", ejecutarCodigo);
+  $("clear-btn")?.addEventListener("click", clearOutput);
+  $("embed-btn")?.addEventListener("click", copiarEmbed);
 }
 
-/* Init */
-window.addEventListener("DOMContentLoaded", async () => {
-  try {
-    initEditor();
-    initUI();
-    // Mantenemos PLANTILLAS "limpia", pero NO repoblamos el select para preservar los optgroups del HTML
-    sanitizePlantillas();
-    // repoblarSelectPlantillas(); // <- Omitido intencionalmente (Opción A)
-    maybeLoadFromQuery();
-    await loadPython();
-    // Si hay una plantilla seleccionada por defecto en el select, cargarla
-    cargarPlantilla();
+document.addEventListener("DOMContentLoaded", () => {
+  initEditor();
+  wireUI();
+  loadPython().then(() => {
     console.log("✅ IDE listo");
-  } catch (e) {
-    console.error(e);
-    statusEl.textContent = "Error cargando Python";
-  }
+  });
 });
