@@ -214,19 +214,19 @@ async function ejecutarCodigo() {
 
   try {
     const wrapper = `
-from jsbridge import print as __js_print
+from jsbridge import print as js_print
 import sys
 
-class __JSWriter:
+class JSWriter:
     def write(self, s):
-        __js_print(str(s))
+        js_print(str(s))
     def flush(self):
         pass
 
-__orig_stdout = sys.stdout
-__orig_stderr = sys.stderr
-sys.stdout = __JSWriter()
-sys.stderr = __JSWriter()
+orig_stdout = sys.stdout
+orig_stderr = sys.stderr
+sys.stdout = JSWriter()
+sys.stderr = JSWriter()
 
 ${code}
 `;
